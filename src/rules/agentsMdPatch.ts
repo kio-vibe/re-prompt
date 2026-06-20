@@ -25,6 +25,14 @@ export async function generateAgentsMdPatch(
   const rules = collectRules(options.bundles)
     .filter((rule) => !existingLower.includes(rule.toLowerCase()))
     .slice(0, options.maxRules ?? 5);
+  if (rules.length === 0) {
+    return {
+      targetPath,
+      applied: false,
+      rules,
+      diff: ""
+    };
+  }
   const next = appendRules(existing, rules);
   return {
     targetPath,
@@ -35,26 +43,43 @@ export async function generateAgentsMdPatch(
 }
 
 function collectRules(bundles: EvidenceBundle[]): string[] {
-  const candidates: string[] = [];
+  const candidates = new Map<string, Set<string>>();
   for (const bundle of bundles) {
-    for (const signal of bundle.signals) {
-      if (signal.kind === "late_constraint" || signal.kind === "user_correction") {
-        candidates.push(
-          "Before refactors, state compatibility assumptions and preserve public API behavior unless explicitly requested."
-        );
-      }
-      if (signal.kind === "verification_gap") {
-        candidates.push("Do not claim completion after file edits until the relevant verification command has run.");
-      }
-      if (signal.kind === "scope_drift") {
-        candidates.push("For small bug fixes, keep changes scoped and ask before adding dependencies or broad architectural edits.");
-      }
-      if (signal.kind === "environment_gap") {
-        candidates.push("Document package manager and verification commands so Codex does not probe the environment repeatedly.");
-      }
+    for (const rule of rulesForBundle(bundle)) {
+      const sessions = candidates.get(rule) ?? new Set<string>();
+      sessions.add(bundle.session.sessionId);
+      candidates.set(rule, sessions);
     }
   }
-  return [...new Set(candidates)].filter((rule) => !/be more specific|provide more context/i.test(rule));
+  return [...candidates.entries()]
+    .filter(([rule, sessions]) => sessions.size >= 2 && !/be more specific|provide more context/i.test(rule))
+    .map(([rule]) => rule);
+}
+
+function rulesForBundle(bundle: EvidenceBundle): string[] {
+  const rules: string[] = [];
+  for (const signal of bundle.signals) {
+    if (signal.kind === "late_constraint" || signal.kind === "user_correction") {
+      const durableConstraint = bundle.concreteFacts.lateConstraints.some((constraint) =>
+        /\b(api|schema|database|migration|security|bounded|transcript|rollout|AGENTS\.md)\b/i.test(constraint)
+      );
+      if (durableConstraint) {
+        rules.push("Before refactors, state compatibility assumptions and preserve durable API, schema, and data-processing invariants.");
+      }
+    }
+    if (signal.kind === "verification_gap" && bundle.concreteFacts.observedTestCommands.length > 0) {
+      const command = bundle.concreteFacts.observedTestCommands[0]!;
+      rules.push(`Do not claim completion after file edits until ${command} has run or the reason it could not run is stated.`);
+    }
+    if (signal.kind === "scope_drift") {
+      rules.push("For small bug fixes, keep changes scoped and ask before adding dependencies or broad architectural edits.");
+    }
+    if (signal.kind === "environment_gap" && bundle.concreteFacts.packageManagers.length > 0) {
+      const manager = bundle.concreteFacts.packageManagers[0]!;
+      rules.push(`Use ${manager} for this repository's setup and verification commands unless the user specifies otherwise.`);
+    }
+  }
+  return rules;
 }
 
 function appendRules(existing: string, rules: string[]): string {

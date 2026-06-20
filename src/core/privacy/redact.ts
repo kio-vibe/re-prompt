@@ -5,6 +5,8 @@ export interface RedactionResult<T> {
 }
 
 const SECRET_PATTERNS: { kind: string; pattern: RegExp; replacement: string }[] = [
+  { kind: "local_home_path", pattern: /\/Users\/[^/\s"')\]]+(?=\/)/g, replacement: "~" },
+  { kind: "local_home_path", pattern: /\/home\/[^/\s"')\]]+(?=\/)/g, replacement: "~" },
   { kind: "openai_api_key", pattern: /sk-[A-Za-z0-9_-]{20,}/g, replacement: "[REDACTED_OPENAI_KEY]" },
   { kind: "bearer_token", pattern: /Bearer\s+[A-Za-z0-9_\-./+=]{20,}/g, replacement: "Bearer [REDACTED_TOKEN]" },
   {

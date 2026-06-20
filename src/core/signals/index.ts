@@ -6,14 +6,12 @@ import type {
   SessionSignal
 } from "../types.js";
 import { truncate, unique } from "../text.js";
+import { detectPackageManager, fingerprintFailureOutput, isImplementationPlanPrompt, isVerificationCommand } from "../commands.js";
 
 const CORRECTION_RE =
   /\b(no|not what i asked|wrong|stop|revert|rollback|i said|don't change|why did you|that's not|you changed)\b|아니|그게 아니라|틀렸|잘못|멈춰|되돌려|롤백|내가 말한 건|바꾸지 말랬|왜 바꿨어|이게 아니/i;
 const CONSTRAINT_RE = /\b(must|don't|without|preserve|keep|maintain|never|do not)\b|기존|유지|바꾸지|건드리지/i;
 const DONE_RE = /\b(done|fixed|implemented|complete|completed|resolved)\b|완료|수정했습니다|해결했습니다|고쳤습니다/i;
-const TEST_COMMAND_RE = /\b(test|vitest|jest|pytest|cargo test|go test|rspec|typecheck|lint|build)\b/i;
-const ENV_COMMAND_RE = /\b(npm|pnpm|yarn|bun|pip|poetry|uv|bundle|cargo|go)\b/i;
-
 export function extractSignals(session: NormalizedSession): SessionSignal[] {
   const signals = [
     ...detectUserCorrections(session),
@@ -32,7 +30,7 @@ export function extractSignals(session: NormalizedSession): SessionSignal[] {
 function detectUserCorrections(session: NormalizedSession): SessionSignal[] {
   return session.turns.flatMap((turn) =>
     turn.userMessages
-      .filter((message) => CORRECTION_RE.test(message.text))
+      .filter((message) => CORRECTION_RE.test(message.text) && !isImplementationPlanPrompt(message.text))
       .map((message): SessionSignal => ({
         kind: "user_correction",
         severity: hasPriorFileChange(session, turn.index) ? "high" : "medium",
@@ -52,7 +50,12 @@ function detectLateConstraints(session: NormalizedSession): SessionSignal[] {
     .filter((turn) => turn.index > 1)
     .flatMap((turn) =>
       turn.userMessages
-        .filter((message) => CONSTRAINT_RE.test(message.text) && !initialText.includes(message.text))
+        .filter(
+          (message) =>
+            CONSTRAINT_RE.test(message.text) &&
+            !initialText.includes(message.text) &&
+            !isImplementationPlanPrompt(message.text)
+        )
         .map((message): SessionSignal => ({
           kind: "late_constraint",
           severity: hasPriorFileChange(session, turn.index) ? "high" : "medium",
@@ -78,6 +81,7 @@ function detectRepeatedFailures(session: NormalizedSession): SessionSignal[] {
     turn.commandExecutions
       .filter((command) => command.exitCode !== undefined && command.exitCode !== 0)
       .map((command) => ({ turn, command, fingerprint: fingerprintCommandFailure(command) }))
+      .filter((failure) => failure.fingerprint.length > 0)
   );
   const groups = new Map<string, typeof failures>();
   for (const failure of failures) {
@@ -114,7 +118,7 @@ function detectVerificationGaps(session: NormalizedSession): SessionSignal[] {
     return [];
   }
   const hasVerification = session.turns.some((turn) =>
-    turn.commandExecutions.some((command) => TEST_COMMAND_RE.test(command.command))
+    turn.commandExecutions.some((command) => isVerificationCommand(command.command))
   );
   const lastAssistant = session.turns
     .flatMap((turn) => turn.assistantMessages.map((message) => ({ turn, message })))
@@ -230,7 +234,7 @@ function detectPrematureEdits(session: NormalizedSession): SessionSignal[] {
 function detectEnvironmentGap(session: NormalizedSession): SessionSignal[] {
   const failedEnvCommands = session.turns.flatMap((turn) =>
     turn.commandExecutions
-      .filter((command) => command.exitCode !== undefined && command.exitCode !== 0 && ENV_COMMAND_RE.test(command.command))
+      .filter((command) => command.exitCode !== undefined && command.exitCode !== 0 && Boolean(detectPackageManager(command.command)))
       .map((command) => ({ turn, command }))
   );
   if (failedEnvCommands.length < 2) {
@@ -261,14 +265,7 @@ function hasPriorFileChange(session: NormalizedSession, turnIndex: number): bool
 }
 
 function fingerprintCommandFailure(command: CommandExecutionEvent): string {
-  const text = command.stderrPreview || command.stdoutPreview || "";
-  return text
-    .split("\n")
-    .filter((line) => /error|failed|fail|exception|traceback|panic|expected/i.test(line))
-    .slice(0, 5)
-    .join("\n")
-    .replace(/\d+/g, "<num>")
-    .replace(/\/[^:\s]+/g, "<path>");
+  return fingerprintFailureOutput(command.stderrPreview || command.stdoutPreview || "");
 }
 
 function dedupeSignals(signals: SessionSignal[]): SessionSignal[] {

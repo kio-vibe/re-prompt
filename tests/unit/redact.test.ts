@@ -15,4 +15,17 @@ describe("redactValue", () => {
     expect(JSON.stringify(result.value)).not.toContain("me@example.com");
     expect(result.redactionCount).toBeGreaterThanOrEqual(4);
   });
+
+  it("redacts local home paths without dropping the useful suffix", () => {
+    const result = redactValue({
+      transcript: "/Users/alice/.codex/sessions/2026/06/20/rollout-test.jsonl",
+      linux: "/home/bob/project/src/index.ts"
+    });
+    const serialized = JSON.stringify(result.value);
+
+    expect(serialized).not.toContain("/Users/alice");
+    expect(serialized).not.toContain("/home/bob");
+    expect(serialized).toContain("~/.codex/sessions");
+    expect(serialized).toContain("~/project/src/index.ts");
+  });
 });

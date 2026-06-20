@@ -1,5 +1,6 @@
-import type { EvidenceBundle, NormalizedSession, SessionSignal } from "../types.js";
-import { truncate } from "../text.js";
+import type { EvidenceAnchor, EvidenceBundle, NormalizedSession, SessionSignal } from "../types.js";
+import { truncate, unique } from "../text.js";
+import { detectPackageManager, fingerprintFailureOutput, isImplementationPlanPrompt, isVerificationCommand } from "../commands.js";
 
 const CONSTRAINT_RE = /\b(must|don't|without|preserve|keep|maintain|never|do not)\b|기존|유지|바꾸지|건드리지/i;
 const CORRECTION_RE = /\b(no|wrong|stop|revert|rollback|don't change|that's not)\b|아니|그게 아니라|틀렸|잘못|멈춰|되돌려/i;
@@ -7,9 +8,18 @@ const CORRECTION_RE = /\b(no|wrong|stop|revert|rollback|don't change|that's not)
 export function buildEvidenceBundle(session: NormalizedSession, signals: SessionSignal[]): EvidenceBundle {
   const fileStats = new Map<string, { changeCount: number; firstTurn: number; lastTurn: number }>();
   const failedCommands: EvidenceBundle["failedCommands"] = [];
+  const anchors: EvidenceAnchor[] = [];
+  const commandsRun: string[] = [];
+  const observedTestCommands: string[] = [];
+  const packageManagers: string[] = [];
+  const errorFingerprints: string[] = [];
+  let firstEditTurn: number | undefined;
+  let firstFailedCommandTurn: number | undefined;
+  let firstVerificationCommandTurn: number | undefined;
 
   for (const turn of session.turns) {
     for (const change of turn.fileChanges) {
+      firstEditTurn ??= turn.index;
       const existing = fileStats.get(change.path) ?? {
         changeCount: 0,
         firstTurn: turn.index,
@@ -18,10 +28,30 @@ export function buildEvidenceBundle(session: NormalizedSession, signals: Session
       existing.changeCount += 1;
       existing.lastTurn = turn.index;
       fileStats.set(change.path, existing);
+      anchors.push({ kind: "changed_file", value: change.path, turnIndex: turn.index, confidence: "high" });
     }
 
     for (const command of turn.commandExecutions) {
+      commandsRun.push(command.command);
+      anchors.push({ kind: "command", value: command.command, turnIndex: turn.index, confidence: "high" });
+      const packageManager = detectPackageManager(command.command);
+      if (packageManager) {
+        packageManagers.push(packageManager);
+        anchors.push({ kind: "package_manager", value: packageManager, turnIndex: turn.index, confidence: "medium" });
+      }
+      if (isVerificationCommand(command.command)) {
+        firstVerificationCommandTurn ??= turn.index;
+        observedTestCommands.push(command.command);
+        anchors.push({ kind: "verification_command", value: command.command, turnIndex: turn.index, confidence: "high" });
+      }
       if (command.exitCode !== undefined && command.exitCode !== 0) {
+        firstFailedCommandTurn ??= turn.index;
+        const fingerprint = fingerprintFailureOutput(command.stderrPreview ?? command.stdoutPreview ?? "");
+        if (fingerprint) {
+          errorFingerprints.push(fingerprint);
+          anchors.push({ kind: "error_fingerprint", value: fingerprint, turnIndex: turn.index, confidence: "medium" });
+        }
+        anchors.push({ kind: "failed_command", value: command.command, turnIndex: turn.index, confidence: "high" });
         failedCommands.push({
           turnIndex: turn.index,
           command: command.command,
@@ -33,6 +63,33 @@ export function buildEvidenceBundle(session: NormalizedSession, signals: Session
   }
 
   const changedFiles = [...fileStats.entries()].map(([path, stats]) => ({ path, ...stats }));
+  const userCorrections = session.turns.flatMap((turn) =>
+    turn.userMessages
+      .filter((message) => CORRECTION_RE.test(message.text) && !isImplementationPlanPrompt(message.text))
+      .map((message) => ({ turnIndex: turn.index, text: truncate(message.text, 500) }))
+  );
+  const constraints = session.turns.flatMap((turn) =>
+    turn.userMessages
+      .filter((message) => CONSTRAINT_RE.test(message.text) && !isImplementationPlanPrompt(message.text))
+      .map((message) => ({ turnIndex: turn.index, text: truncate(message.text, 500), late: turn.index > 1 }))
+  );
+  for (const correction of userCorrections) {
+    anchors.push({ kind: "user_correction", value: correction.text, turnIndex: correction.turnIndex, confidence: "high" });
+  }
+  for (const constraint of constraints.filter((item) => item.late)) {
+    anchors.push({ kind: "late_constraint", value: constraint.text, turnIndex: constraint.turnIndex, confidence: "high" });
+  }
+
+  const firstUserCorrectionTurn = userCorrections[0]?.turnIndex;
+  const firstLateConstraintTurn = constraints.find((constraint) => constraint.late)?.turnIndex;
+  const repeatedFiles = changedFiles.filter((file) => file.changeCount >= 2).map((file) => file.path);
+  const verificationKnown = observedTestCommands.length > 0;
+  const goalKnown = isGoalKnown(session.turns[0]?.userMessages[0]?.text, {
+    changedFiles: changedFiles.map((file) => file.path),
+    commandsRun
+  });
+  const hasVerificationGap = signals.some((signal) => signal.kind === "verification_gap");
+  const outcomeKnown = failedCommands.length > 0 || (!hasVerificationGap && verificationKnown);
 
   return {
     product: "re-prompt",
@@ -61,19 +118,83 @@ export function buildEvidenceBundle(session: NormalizedSession, signals: Session
     signals,
     changedFiles,
     failedCommands,
-    userCorrections: session.turns.flatMap((turn) =>
-      turn.userMessages
-        .filter((message) => CORRECTION_RE.test(message.text))
-        .map((message) => ({ turnIndex: turn.index, text: truncate(message.text, 500) }))
-    ),
-    constraints: session.turns.flatMap((turn) =>
-      turn.userMessages
-        .filter((message) => CONSTRAINT_RE.test(message.text))
-        .map((message) => ({ turnIndex: turn.index, text: truncate(message.text, 500), late: turn.index > 1 }))
-    ),
+    userCorrections,
+    constraints,
+    anchors: dedupeAnchors(anchors),
+    expensiveWindow: buildExpensiveWindow(signals),
+    firsts: {
+      firstEditTurn,
+      firstFailedCommandTurn,
+      firstUserCorrectionTurn,
+      firstLateConstraintTurn,
+      firstVerificationCommandTurn
+    },
+    concreteFacts: {
+      changedFiles: changedFiles.map((file) => file.path),
+      repeatedFiles,
+      commandsRun: unique(commandsRun),
+      failedCommands: unique(failedCommands.map((command) => command.command)),
+      observedTestCommands: unique(observedTestCommands),
+      packageManagers: unique(packageManagers),
+      lateConstraints: constraints.filter((constraint) => constraint.late).map((constraint) => constraint.text),
+      userCorrections: userCorrections.map((correction) => correction.text),
+      errorFingerprints: unique(errorFingerprints)
+    },
+    uncertainty: {
+      goalKnown,
+      outcomeKnown,
+      verificationKnown,
+      reason: goalKnown ? undefined : "The initial user prompt did not contain enough concrete task detail."
+    },
     privacy: {
       redactionApplied: false,
       redactionCount: 0
     }
   };
+}
+
+function buildExpensiveWindow(signals: SessionSignal[]): EvidenceBundle["expensiveWindow"] {
+  if (signals.length === 0) {
+    return undefined;
+  }
+  const first = signals[0]!;
+  const last = signals[signals.length - 1]!;
+  return {
+    startTurn: first.turnIndex,
+    endTurn: last.turnIndex,
+    reason: first.title,
+    confidence: first.confidence
+  };
+}
+
+function dedupeAnchors(anchors: EvidenceAnchor[]): EvidenceAnchor[] {
+  const seen = new Set<string>();
+  return anchors.filter((anchor) => {
+    const key = `${anchor.kind}:${anchor.turnIndex ?? ""}:${anchor.value}`;
+    if (seen.has(key)) {
+      return false;
+    }
+    seen.add(key);
+    return true;
+  });
+}
+
+function isGoalKnown(
+  initialPrompt: string | undefined,
+  facts: { changedFiles: string[]; commandsRun: string[] }
+): boolean {
+  if (!initialPrompt || initialPrompt.trim().length < 20) {
+    return false;
+  }
+  const normalized = initialPrompt.trim().toLowerCase();
+  const hasConcretePromptAnchor = /`[^`]+`|[\w./-]+\.(ts|tsx|js|jsx|json|md|py|go|rs)|\b(pnpm|npm|yarn|node|pytest|cargo|go)\b/i.test(
+    initialPrompt
+  );
+  if (hasConcretePromptAnchor) {
+    return true;
+  }
+  if (/^(do it|fix it|handle it|make it work|please implement this plan)\.?$/i.test(normalized)) {
+    return false;
+  }
+  return initialPrompt.trim().split(/\s+/).length >= 4 || facts.commandsRun.length > 0;
 }

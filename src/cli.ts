@@ -13,7 +13,12 @@ import { extractSignals } from "./core/signals/index.js";
 import type { EvidenceBundle, NormalizedSession, RetroReport, SessionSignal } from "./core/types.js";
 import { renderMarkdownReport } from "./renderers/markdownRenderer.js";
 import { generateAgentsMdPatch } from "./rules/agentsMdPatch.js";
-import { defaultCodexHome, locateCodexSessions, resolveSessionReference } from "./sources/codex/locateCodexSessions.js";
+import {
+  defaultCodexHome,
+  locateCodexSessions,
+  resolveSessionReference,
+  type SessionCandidate
+} from "./sources/codex/locateCodexSessions.js";
 import { normalizeCodexSession } from "./sources/codex/normalizeCodexSession.js";
 import { parseCodexJsonl } from "./sources/codex/parseCodexJsonl.js";
 
@@ -71,11 +76,11 @@ export function createProgram(): Command {
     .option("--repo <path>", "Filter by repo/cwd")
     .action(async (options) => {
       assertEngine(options.engine);
-      const sessions = await locateCodexSessions({ codexHome: options.codexHome, repoPath: options.repo });
-      if (sessions.length === 0) {
-        throw new Error("No Codex sessions found. Run `re-prompt doctor` for diagnostics.");
-      }
-      await retroCommand(sessions[0]!.transcriptPath, { engine: "none", format: parseFormat(options.format) });
+      await lastCommand({
+        codexHome: options.codexHome,
+        repo: options.repo,
+        format: parseFormat(options.format)
+      });
     });
 
   program
@@ -205,11 +210,63 @@ async function scanCommand(options: {
 
 async function retroCommand(path: string, options: { engine: Engine; format: Format }): Promise<void> {
   const result = await analyzeSession(path, options.engine);
-  if (options.format === "json") {
-    console.log(JSON.stringify(result.report, null, 2));
+  result.report.selection = {
+    command: "retro",
+    source: "codex",
+    sessionId: result.session.sessionId,
+    transcriptPath: result.session.transcriptPath,
+    selectedBecause: "explicit session reference",
+    startedAt: result.session.startedAt,
+    turnsAnalyzed: result.session.turns.length,
+    confidence: "high"
+  };
+  printReport(result.report, options.format);
+}
+
+function printReport(report: RetroReport, format: Format): void {
+  const redacted = redactValue(report).value;
+  if (format === "json") {
+    console.log(JSON.stringify(redacted, null, 2));
     return;
   }
-  console.log(renderMarkdownReport(result.report));
+  console.log(renderMarkdownReport(redacted));
+}
+
+async function lastCommand(options: {
+  codexHome?: string;
+  repo?: string;
+  format: Format;
+}): Promise<void> {
+  const sessions = await locateCodexSessions({ codexHome: options.codexHome, repoPath: options.repo });
+  if (sessions.length === 0) {
+    throw new Error("No Codex sessions found. Run `re-prompt doctor` for diagnostics.");
+  }
+
+  const skipped = { tooLarge: 0, parseFailed: 0, other: 0 };
+  const maxTranscriptBytes = getMaxTranscriptBytes();
+  for (const candidate of sessions) {
+    if (candidate.sizeBytes > maxTranscriptBytes) {
+      skipped.tooLarge += 1;
+      continue;
+    }
+
+    try {
+      const result = await analyzeSession(candidate.transcriptPath, "none");
+      result.report.selection = buildLastSelection(result, candidate, skipped, options.repo);
+      printReport(result.report, options.format);
+      return;
+    } catch (error) {
+      if (error instanceof SyntaxError) {
+        skipped.parseFailed += 1;
+      } else {
+        skipped.other += 1;
+      }
+    }
+  }
+
+  throw new Error(
+    `No analyzable Codex sessions found. Skipped newer sessions: ${skipped.tooLarge} too_large, ${skipped.parseFailed} parse_failed, ${skipped.other} other.`
+  );
 }
 
 async function rulesCommand(options: {
@@ -253,6 +310,29 @@ async function analyzeSession(path: string, engine: Engine): Promise<AnalyzeResu
   };
   const report = await new HeuristicOnlyAnalyzer().analyze(redactedBundle, { engine });
   return { session, signals, bundle: redactedBundle, report };
+}
+
+function buildLastSelection(
+  result: AnalyzeResult,
+  candidate: SessionCandidate,
+  skipped: { tooLarge: number; parseFailed: number; other: number },
+  repo?: string
+): RetroReport["selection"] {
+  const repoMatches = repo && candidate.cwd ? resolve(candidate.cwd) === resolve(repo) : false;
+  return {
+    command: "last",
+    source: "codex",
+    sessionId: result.session.sessionId,
+    transcriptPath: candidate.transcriptPath,
+    selectedBecause: "most recent analyzable session",
+    startedAt: candidate.startedAt ?? result.session.startedAt,
+    turnsAnalyzed: result.session.turns.length,
+    skippedNewerSessions: skipped,
+    confidence: repoMatches ? "high" : "low",
+    confidenceReason: repoMatches
+      ? "The session cwd matched the requested repository filter."
+      : "re-prompt could not confirm this session belongs to the current repository. Use --repo or retro <path> for a specific session."
+  };
 }
 
 async function loadNormalizedSession(path: string): Promise<NormalizedSession> {

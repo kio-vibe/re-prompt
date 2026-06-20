@@ -37,6 +37,21 @@ describe("signal extraction", () => {
     expect(driftSignals.some((signal) => signal.kind === "scope_drift")).toBe(true);
   });
 
+  it("does not treat follow-up implementation plans as late constraints", async () => {
+    const signals = extractSignals(await loadSession("plan-followups-not-late-constraint.jsonl"));
+
+    expect(signals.some((signal) => signal.kind === "late_constraint")).toBe(false);
+  });
+
+  it("does not treat inspection commands with test paths as verification", async () => {
+    const session = await loadSession("sed-test-path-not-verification.jsonl");
+    const signals = extractSignals(session);
+    const bundle = buildEvidenceBundle(session, signals);
+
+    expect(bundle.concreteFacts.observedTestCommands).toEqual([]);
+    expect(signals.some((signal) => signal.kind === "verification_gap")).toBe(true);
+  });
+
   it("builds compact evidence without full raw transcript content", async () => {
     const session = await loadSession("late-constraint.jsonl");
     const signals = extractSignals(session);

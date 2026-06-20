@@ -7,10 +7,28 @@ export function renderMarkdownReport(report: RetroReport): string {
       return `- Turn ${evidence.turnIndex}: ${detail}`;
     })
   );
+  const selectionLines = report.selection
+    ? [
+        "Selected session:",
+        `- Source: ${report.selection.source}`,
+        `- Session: ${report.selection.sessionId}`,
+        `- Transcript: ${report.selection.transcriptPath}`,
+        `- Selected because: ${report.selection.selectedBecause}`,
+        report.selection.startedAt ? `- Started: ${report.selection.startedAt}` : undefined,
+        `- Turns analyzed: ${report.selection.turnsAnalyzed}`,
+        report.selection.skippedNewerSessions
+          ? `- Skipped newer sessions: ${formatSkippedSessions(report.selection.skippedNewerSessions)}`
+          : undefined,
+        `- Selection confidence: ${report.selection.confidence}`,
+        report.selection.confidenceReason ? `- Confidence note: ${report.selection.confidenceReason}` : undefined,
+        ""
+      ].filter((line): line is string => Boolean(line))
+    : [];
 
   return [
     "# re-prompt retro",
     "",
+    ...selectionLines,
     `Source: ${report.session.source}`,
     `Session: ${report.session.sessionId}`,
     `Friction: ${capitalize(report.friction.label)}, ${report.friction.score}/100`,
@@ -19,7 +37,7 @@ export function renderMarkdownReport(report: RetroReport): string {
     "",
     "## What you were trying to do",
     "",
-    report.session.inferredGoal,
+    report.session.confidence === "low" ? `Low confidence: ${report.session.inferredGoal}` : report.session.inferredGoal,
     "",
     "## Where it got expensive",
     "",
@@ -63,4 +81,13 @@ export function renderMarkdownReport(report: RetroReport): string {
 
 function capitalize(value: string): string {
   return value.charAt(0).toUpperCase() + value.slice(1);
+}
+
+function formatSkippedSessions(skipped: { tooLarge: number; parseFailed: number; other: number }): string {
+  const parts = [
+    skipped.tooLarge > 0 ? `${skipped.tooLarge} too_large` : undefined,
+    skipped.parseFailed > 0 ? `${skipped.parseFailed} parse_failed` : undefined,
+    skipped.other > 0 ? `${skipped.other} other` : undefined
+  ].filter(Boolean);
+  return parts.length > 0 ? parts.join(", ") : "0";
 }

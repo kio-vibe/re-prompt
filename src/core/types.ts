@@ -153,6 +153,22 @@ export interface EvidenceRef {
   command?: string;
 }
 
+export interface EvidenceAnchor {
+  kind:
+    | "file_path"
+    | "command"
+    | "failed_command"
+    | "error_fingerprint"
+    | "late_constraint"
+    | "user_correction"
+    | "verification_command"
+    | "changed_file"
+    | "package_manager";
+  value: string;
+  turnIndex?: number;
+  confidence: "low" | "medium" | "high";
+}
+
 export interface TimelineItem {
   turnIndex: number;
   user?: string;
@@ -201,6 +217,37 @@ export interface EvidenceBundle {
     text: string;
     late: boolean;
   }[];
+  anchors: EvidenceAnchor[];
+  expensiveWindow?: {
+    startTurn: number;
+    endTurn: number;
+    reason: string;
+    confidence: "low" | "medium" | "high";
+  };
+  firsts: {
+    firstEditTurn?: number;
+    firstFailedCommandTurn?: number;
+    firstUserCorrectionTurn?: number;
+    firstLateConstraintTurn?: number;
+    firstVerificationCommandTurn?: number;
+  };
+  concreteFacts: {
+    changedFiles: string[];
+    repeatedFiles: string[];
+    commandsRun: string[];
+    failedCommands: string[];
+    observedTestCommands: string[];
+    packageManagers: string[];
+    lateConstraints: string[];
+    userCorrections: string[];
+    errorFingerprints: string[];
+  };
+  uncertainty: {
+    goalKnown: boolean;
+    outcomeKnown: boolean;
+    verificationKnown: boolean;
+    reason?: string;
+  };
   privacy: {
     redactionApplied: boolean;
     redactionCount: number;
@@ -216,6 +263,22 @@ export interface RetroReport {
     inferredGoal: string;
     outcome: "successful" | "partially_successful" | "failed" | "unclear";
     confidence: "low" | "medium" | "high";
+  };
+  selection?: {
+    command: "last" | "retro";
+    source: "codex";
+    sessionId: string;
+    transcriptPath: string;
+    selectedBecause: string;
+    startedAt?: string;
+    turnsAnalyzed: number;
+    skippedNewerSessions?: {
+      tooLarge: number;
+      parseFailed: number;
+      other: number;
+    };
+    confidence: "low" | "medium" | "high";
+    confidenceReason?: string;
   };
   executiveSummary: string;
   friction: {

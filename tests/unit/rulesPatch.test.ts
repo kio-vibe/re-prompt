@@ -20,9 +20,14 @@ describe("generateAgentsMdPatch", () => {
     });
     const bundle = buildEvidenceBundle(session, extractSignals(session));
 
+    const secondBundle = {
+      ...bundle,
+      session: { ...bundle.session, sessionId: "sess-late-2" }
+    };
+
     const result = await generateAgentsMdPatch({
       repoRoot: repo,
-      bundles: [bundle, bundle, bundle],
+      bundles: [bundle, secondBundle],
       maxRules: 5
     });
 
@@ -31,5 +36,27 @@ describe("generateAgentsMdPatch", () => {
     expect(result.rules.length).toBeLessThanOrEqual(5);
     expect(result.diff).toContain("Lessons from recent Codex sessions");
     expect(await readFile(agentsPath, "utf8")).toBe("# AGENTS.md\n\n- Existing rule.\n");
+  });
+
+  it("does not suggest AGENTS.md rules from a single one-off constraint", async () => {
+    const repo = await mkdtemp(join(tmpdir(), "re-prompt-rules-one-off-"));
+    const agentsPath = join(repo, "AGENTS.md");
+    await writeFile(agentsPath, "# AGENTS.md\n", "utf8");
+
+    const parsed = parseCodexJsonl(await readFixture("one-off-constraint-no-agents-patch.jsonl"));
+    const session = normalizeCodexSession(parsed, {
+      transcriptPath: fixturePath("one-off-constraint-no-agents-patch.jsonl")
+    });
+    const bundle = buildEvidenceBundle(session, extractSignals(session));
+
+    const result = await generateAgentsMdPatch({
+      repoRoot: repo,
+      bundles: [bundle],
+      maxRules: 5
+    });
+
+    expect(result.rules).toEqual([]);
+    expect(result.diff).toBe("");
+    expect(await readFile(agentsPath, "utf8")).toBe("# AGENTS.md\n");
   });
 });

@@ -1,4 +1,4 @@
-import { copyFile, mkdir, mkdtemp, readFile, writeFile } from "node:fs/promises";
+import { copyFile, mkdir, mkdtemp, readFile, utimes, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
 import { execa } from "execa";
@@ -56,7 +56,7 @@ describe("CLI commands", () => {
     expect(JSON.parse(inspect.stdout)).toMatchObject({ sessionId: "sess-late" });
   });
 
-  it("prints rules dry-run diff without modifying AGENTS.md", async () => {
+  it("prints no rules dry-run diff for a single one-off signal without modifying AGENTS.md", async () => {
     const { codexHome } = await makeCodexHomeWithSession("late-constraint.jsonl");
     const repo = await mkdtemp(join(tmpdir(), "re-prompt-cli-repo-"));
     const agentsPath = join(repo, "AGENTS.md");
@@ -65,7 +65,7 @@ describe("CLI commands", () => {
     const result = await runCli(["rules", "--since", "30d", "--codex-home", codexHome, "--repo", repo]);
 
     expect(result.exitCode).toBe(0);
-    expect(result.stdout).toContain("Lessons from recent Codex sessions");
+    expect(result.stdout).toContain("No AGENTS.md rule changes suggested.");
     expect(await readFile(agentsPath, "utf8")).toBe("# AGENTS.md\n");
   });
 
@@ -111,5 +111,31 @@ describe("CLI commands", () => {
     });
     expect(retro.exitCode).toBe(1);
     expect(retro.stderr).toContain("too large for re-prompt 0.1.0");
+  });
+
+  it("last explains selected session and skipped newer oversized sessions", async () => {
+    const codexHome = await mkdtemp(join(tmpdir(), "re-prompt-cli-last-selection-"));
+    const day = join(codexHome, "sessions", "2026", "06", "20");
+    await mkdir(day, { recursive: true });
+    const selectedPath = join(day, "rollout-2026-06-20T05-00-00-selected.jsonl");
+    const oversizedPath = join(day, "rollout-2026-06-20T06-00-00-oversized.jsonl");
+    await copyFile(fixturePath("late-constraint.jsonl"), selectedPath);
+    await writeFile(
+      oversizedPath,
+      `{"type":"session_meta","payload":{"id":"oversized-newer","cwd":"/tmp/api"}}\n${"x".repeat(8192)}`,
+      "utf8"
+    );
+    await utimes(selectedPath, new Date("2026-06-20T05:00:00.000Z"), new Date("2026-06-20T05:00:00.000Z"));
+    await utimes(oversizedPath, new Date("2026-06-20T06:00:00.000Z"), new Date("2026-06-20T06:00:00.000Z"));
+
+    const result = await runCliWithEnv(["last", "--engine", "none", "--codex-home", codexHome], {
+      RE_PROMPT_MAX_TRANSCRIPT_BYTES: "4096"
+    });
+
+    expect(result.exitCode).toBe(0);
+    expect(result.stdout).toContain("Selected session");
+    expect(result.stdout).toContain("Selected because: most recent analyzable session");
+    expect(result.stdout).toContain("Skipped newer sessions: 1 too_large");
+    expect(result.stdout).toContain("sess-late");
   });
 });

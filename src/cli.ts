@@ -26,6 +26,14 @@ type Engine = "none";
 type Format = "md" | "json";
 const DEFAULT_MAX_TRANSCRIPT_BYTES = 50 * 1024 * 1024;
 
+interface ScanRow {
+  score: number;
+  sessionId: string;
+  turns: number;
+  mainIssue: string;
+  path: string;
+}
+
 interface AnalyzeResult {
   session: NormalizedSession;
   signals: SessionSignal[];
@@ -37,7 +45,7 @@ export function createProgram(): Command {
   const program = new Command()
     .name("re-prompt")
     .description("A local-first Codex session postmortem CLI.")
-    .version("0.1.2");
+    .version("0.1.3");
 
   program
     .command("doctor")
@@ -45,6 +53,22 @@ export function createProgram(): Command {
     .option("--codex-home <path>", "Override CODEX_HOME")
     .action(async (options) => {
       await doctorCommand({ codexHome: options.codexHome });
+    });
+
+  program
+    .command("go")
+    .description("Guide a first re-prompt run against recent Codex sessions.")
+    .option("--since <range>", "Time range such as 30d or 2026-06-01", "30d")
+    .option("--top <count>", "Maximum sessions to show", "5")
+    .option("--codex-home <path>", "Override CODEX_HOME")
+    .option("--repo <path>", "Filter by repo/cwd")
+    .action(async (options) => {
+      await goCommand({
+        since: options.since,
+        top: Number(options.top),
+        codexHome: options.codexHome,
+        repo: options.repo
+      });
     });
 
   program
@@ -159,6 +183,59 @@ async function doctorCommand(options: { codexHome?: string }): Promise<void> {
   console.log("analyzer: heuristic-only local mode");
 }
 
+async function goCommand(options: { since: string; top: number; codexHome?: string; repo?: string }): Promise<void> {
+  const codexHome = options.codexHome ?? defaultCodexHome();
+  const sessionsDir = resolve(codexHome, "sessions");
+  const maxTranscriptBytes = getMaxTranscriptBytes();
+  const sessions = await locateCodexSessions({ codexHome, repoPath: options.repo });
+  const largest = sessions.reduce<SessionCandidate | undefined>(
+    (current, session) => (!current || session.sizeBytes > current.sizeBytes ? session : current),
+    undefined
+  );
+
+  console.log("re-prompt go");
+  console.log("");
+  console.log(formatCheck(existsSync(codexHome), `CODEX_HOME: ${codexHome}`));
+  console.log(formatCheck(existsSync(sessionsDir), `sessions directory: ${sessionsDir}`));
+  console.log(formatCheck(sessions.length > 0, `found sessions: ${sessions.length}`));
+  if (largest) {
+    const warning =
+      largest.sizeBytes > maxTranscriptBytes
+        ? ` (${formatBytes(largest.sizeBytes)}; larger than scan limit ${formatBytes(maxTranscriptBytes)})`
+        : ` (${formatBytes(largest.sizeBytes)})`;
+    console.log(formatCheck(largest.sizeBytes <= maxTranscriptBytes, `largest session: ${largest.transcriptPath}${warning}`));
+  }
+  console.log("");
+
+  if (sessions.length === 0) {
+    console.log("No Codex sessions found yet.");
+    console.log("Run Codex on a coding task first, then come back and run `re-prompt go` again.");
+    console.log("For diagnostics, run `re-prompt doctor`.");
+    return;
+  }
+
+  const rows = await collectScanRows({
+    since: options.since,
+    top: Math.max(Number.isFinite(options.top) ? options.top : 5, 1),
+    codexHome,
+    repo: options.repo
+  });
+
+  if (rows.length === 0) {
+    console.log(`No recent Codex sessions matched --since ${options.since}.`);
+    console.log("Try `re-prompt scan --since 90d` or `re-prompt last`.");
+    return;
+  }
+
+  console.log(`Top sessions since ${options.since}:`);
+  printScanTable(rows);
+  console.log("");
+  console.log("Next commands:");
+  console.log(`- Analyze the top session: re-prompt retro ${rows[0]!.sessionId}`);
+  console.log("- Quick latest-session report: re-prompt last");
+  console.log("- Preview durable repo rules: re-prompt rules --since 30d");
+}
+
 async function scanCommand(options: {
   since: string;
   top: number;
@@ -166,12 +243,27 @@ async function scanCommand(options: {
   repo?: string;
   format: string;
 }): Promise<void> {
+  const topRows = await collectScanRows(options);
+  if (options.format === "json") {
+    console.log(JSON.stringify(topRows, null, 2));
+    return;
+  }
+
+  printScanTable(topRows);
+}
+
+async function collectScanRows(options: {
+  since: string;
+  top: number;
+  codexHome?: string;
+  repo?: string;
+}): Promise<ScanRow[]> {
   const since = parseSince(options.since);
   const maxTranscriptBytes = getMaxTranscriptBytes();
-  const sessions = (await locateCodexSessions({ codexHome: options.codexHome })).filter(
+  const sessions = (await locateCodexSessions({ codexHome: options.codexHome, repoPath: options.repo })).filter(
     (session) => !since || session.mtimeMs >= since.getTime()
   );
-  const rows = [];
+  const rows: ScanRow[] = [];
 
   for (const candidate of sessions.slice(0, Math.max(options.top, 1) * 3)) {
     if (candidate.sizeBytes > maxTranscriptBytes) {
@@ -196,14 +288,12 @@ async function scanCommand(options: {
     });
   }
 
-  const topRows = rows.sort((a, b) => b.score - a.score).slice(0, options.top);
-  if (options.format === "json") {
-    console.log(JSON.stringify(topRows, null, 2));
-    return;
-  }
+  return rows.sort((a, b) => b.score - a.score).slice(0, options.top);
+}
 
+function printScanTable(rows: ScanRow[]): void {
   console.log("Friction  Session                              Turns  Main issue");
-  for (const row of topRows) {
+  for (const row of rows) {
     console.log(`${String(row.score).padEnd(9)} ${row.sessionId.slice(0, 34).padEnd(36)} ${String(row.turns).padEnd(6)} ${row.mainIssue}`);
   }
 }

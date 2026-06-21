@@ -4,49 +4,60 @@ This guide is for early testers trying `re-prompt` against their own local Codex
 
 The goal is not to collect raw transcripts. The goal is to learn whether `scan -> retro` finds the real moment where a session became expensive, misleading, or hard to recover.
 
-## Install from source
+## Install from GitHub Release
 
-`re-prompt` is not published to npm yet.
-
-This guide lives on `main`, but the current dogfood build is the `v0.1.2` tagged source release. Keep this guide open while you run the commands below. After `git checkout v0.1.2`, your local checkout may not contain these dogfood docs yet.
+`re-prompt` is not published to npm yet. Install the packaged GitHub Release tarball:
 
 ```bash
-git clone https://github.com/kio-vibe/re-prompt.git
-cd re-prompt
-git checkout v0.1.2
-pnpm install
-pnpm build
-node dist/cli.js --version
+npm install -g https://github.com/kio-vibe/re-prompt/releases/download/v0.1.3/re-prompt-0.1.3.tgz
+re-prompt --version
 ```
 
 Expected version:
 
 ```txt
-0.1.2
+0.1.3
 ```
 
-`doctor`, `scan`, and `last` need local Codex stored sessions under your Codex home. They are most useful on a machine where you have already used Codex CLI.
+Source install is a fallback for maintainers and contributors:
+
+```bash
+git clone https://github.com/kio-vibe/re-prompt.git
+cd re-prompt
+git checkout v0.1.3
+pnpm install
+pnpm build
+node dist/cli.js --version
+```
 
 ## Run
 
-Start with the primary flow:
+Fastest first look:
 
 ```bash
-node dist/cli.js doctor
-node dist/cli.js scan --since 30d
-node dist/cli.js retro <session-id-or-path> --engine none
+re-prompt go
 ```
 
-Use `last` as a convenience command when you want `re-prompt` to choose the most recent analyzable session:
+Quick latest-session report:
 
 ```bash
-node dist/cli.js last --engine none
+re-prompt last
 ```
+
+Best evaluation flow:
+
+```bash
+re-prompt doctor
+re-prompt scan --since 30d
+re-prompt retro <session-id-or-path>
+```
+
+`doctor`, `scan`, `go`, and `last` need local Codex stored sessions under your Codex home. They are most useful on a machine where you have already used Codex CLI.
 
 Preview conservative AGENTS.md suggestions from repeated evidence:
 
 ```bash
-node dist/cli.js rules --since 30d
+re-prompt rules --since 30d
 ```
 
 ## What to check

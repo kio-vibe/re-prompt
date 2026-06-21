@@ -6,7 +6,15 @@ A local-first Codex session postmortem CLI.
 
 ## Install
 
-`re-prompt` is not published to npm yet. For now, install from source:
+`re-prompt` is not published to npm yet. For dogfood, install the packaged GitHub Release tarball:
+
+```bash
+npm install -g https://github.com/kio-vibe/re-prompt/releases/download/v0.1.3/re-prompt-0.1.3.tgz
+re-prompt --version
+re-prompt go
+```
+
+Source install is still available for maintainers and contributors:
 
 ```bash
 git clone https://github.com/kio-vibe/re-prompt.git
@@ -23,7 +31,7 @@ pnpm pack
 mkdir /tmp/re-prompt-install-test
 cd /tmp/re-prompt-install-test
 npm init -y
-npm install /path/to/re-prompt-0.1.2.tgz
+npm install /path/to/re-prompt-0.1.3.tgz
 npx re-prompt --version
 npx re-prompt doctor
 ```
@@ -32,18 +40,24 @@ npx re-prompt doctor
 
 ## Quick Start
 
-Start by checking that Codex transcripts are visible, then scan recent sessions and choose one to analyze:
+Fastest first look:
+
+```bash
+re-prompt go
+```
+
+Quick latest-session report:
+
+```bash
+re-prompt last
+```
+
+Best evaluation flow:
 
 ```bash
 re-prompt doctor
 re-prompt scan --since 30d
 re-prompt retro <session-id-or-path>
-```
-
-Use `last` when you want the most recent analyzable session picked for you:
-
-```bash
-re-prompt last --engine none
 ```
 
 Preview conservative AGENTS.md suggestions from repeated recent evidence:
@@ -71,9 +85,9 @@ re-prompt rules --since 30d
 
 ## Dogfood / Feedback
 
-`v0.1.2` is ready for source-install dogfood, but it is not published to npm yet.
+`v0.1.3` is ready for release-tarball dogfood, but it is not published to npm yet.
 
-Dogfood docs live on `main`; the current test build is the `v0.1.2` tagged source release.
+The fastest path is in the [release install guide](docs/install-from-release.md).
 
 Start with the [dogfood guide](docs/dogfood.md), read the [privacy guidance](docs/privacy-for-dogfood.md), and check the [known limitations](docs/known-limitations.md) before opening feedback.
 
@@ -90,8 +104,9 @@ Please do not paste raw Codex transcripts, private code, secrets, or unredacted 
 ```bash
 re-prompt doctor
 re-prompt scan --since 30d
-re-prompt last --engine none
-re-prompt retro <session-id-or-path> --engine none
+re-prompt go
+re-prompt last
+re-prompt retro <session-id-or-path>
 re-prompt inspect <session-id-or-path>
 re-prompt rules --since 30d
 ```

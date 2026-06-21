@@ -1,6 +1,6 @@
 # Known Limitations
 
-`re-prompt v0.1.2` is an early dogfood release. It is useful for testing report quality, but it is intentionally narrow.
+`re-prompt v0.1.3` is an early dogfood release. It is useful for testing report quality, but it is intentionally narrow.
 
 ## Current scope
 

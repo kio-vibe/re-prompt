@@ -9,9 +9,11 @@ This smoke test checks that the package a user would install from a tarball expo
 From a fresh clone:
 
 ```bash
-codex plugin marketplace add .agents/plugins
+codex plugin marketplace add .
 codex plugin add re-prompt@re-prompt-local
 ```
+
+Run this from the repository root. Codex expects the marketplace root and discovers `.agents/plugins/marketplace.json` inside it.
 
 Then start a new Codex thread and run:
 

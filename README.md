@@ -11,9 +11,11 @@ A local-first Codex session postmortem plugin and CLI.
 ```bash
 git clone https://github.com/kio-vibe/re-prompt.git
 cd re-prompt
-codex plugin marketplace add .agents/plugins
+codex plugin marketplace add .
 codex plugin add re-prompt@re-prompt-local
 ```
+
+Pass the repository root to `codex plugin marketplace add`; Codex finds `.agents/plugins/marketplace.json` inside it.
 
 Requirements:
 

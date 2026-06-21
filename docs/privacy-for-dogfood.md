@@ -63,7 +63,7 @@ If an issue requires sensitive detail to reproduce, describe the shape of the da
 
 ## What re-prompt does locally
 
-`re-prompt` is local-first and heuristic-only in `v0.1.2`.
+`re-prompt` is local-first and heuristic-only in `v0.1.3`.
 
 - It does not upload transcripts.
 - It does not call a cloud analyzer.

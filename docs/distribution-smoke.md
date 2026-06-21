@@ -25,12 +25,13 @@ pnpm pack
 mkdir /tmp/re-prompt-install-test
 cd /tmp/re-prompt-install-test
 npm init -y
-npm install /path/to/re-prompt-0.1.2.tgz
+npm install /path/to/re-prompt-0.1.3.tgz
 npx re-prompt --version
 npx re-prompt --help
+npx re-prompt go
 npx re-prompt doctor
 npx re-prompt scan --since 30d
-npx re-prompt last --engine none
+npx re-prompt last
 ```
 
 You can run the same flow from the repo:
@@ -53,6 +54,7 @@ docs/examples/rules-preview.md
 docs/examples/scan-output.txt
 docs/dogfood.md
 docs/distribution-smoke.md
+docs/install-from-release.md
 docs/known-limitations.md
 docs/privacy-for-dogfood.md
 package.json
@@ -65,5 +67,5 @@ It should not include local Codex transcripts, dogfood reports, temp tarballs, o
 
 - `doctor` reports missing sessions: Codex CLI has not created stored sessions on this machine yet.
 - `scan --since 30d` prints no useful rows: there may be no recent analyzable Codex sessions.
-- `last --engine none` fails with no analyzable sessions: acceptable on a fresh machine, but not on a maintainer machine with real Codex history.
+- `last` fails with no analyzable sessions: acceptable on a fresh machine, but not on a maintainer machine with real Codex history.
 - package contents include unexpected files: fix the `files` allowlist in `package.json` before npm publish.

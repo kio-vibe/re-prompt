@@ -57,9 +57,16 @@ if ! printf '%s\n' "$SCAN_OUTPUT" | grep -q 'Friction'; then
   exit 1
 fi
 
+GO_OUTPUT="$(npx re-prompt go --top 3)"
+printf '%s\n' "$GO_OUTPUT"
+if ! printf '%s\n' "$GO_OUTPUT" | grep -q 're-prompt go'; then
+  echo "Go output did not contain the expected header." >&2
+  exit 1
+fi
+
 echo "==> Checking latest analyzable session"
 set +e
-LAST_OUTPUT="$(npx re-prompt last --engine none 2>&1)"
+LAST_OUTPUT="$(npx re-prompt last 2>&1)"
 LAST_EXIT=$?
 set -e
 

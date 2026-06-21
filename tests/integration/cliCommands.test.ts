@@ -42,7 +42,7 @@ describe("CLI commands", () => {
     });
 
     expect(result.exitCode).toBe(0);
-    expect(result.stdout).toBe("0.1.2");
+    expect(result.stdout).toBe("0.1.3");
   });
 
   it("prints doctor and scan output for a temp CODEX_HOME", async () => {
@@ -56,6 +56,32 @@ describe("CLI commands", () => {
     expect(scan.exitCode).toBe(0);
     expect(scan.stdout).toContain("Friction");
     expect(scan.stdout).toContain("late_constraint");
+  });
+
+  it("guides a first run with scan rows and next commands", async () => {
+    const { codexHome } = await makeCodexHomeWithSession("late-constraint.jsonl");
+
+    const result = await runCli(["go", "--codex-home", codexHome, "--top", "3"]);
+
+    expect(result.exitCode).toBe(0);
+    expect(result.stdout).toContain("re-prompt go");
+    expect(result.stdout).toContain("found sessions: 1");
+    expect(result.stdout).toContain("Friction");
+    expect(result.stdout).toContain("late_constraint");
+    expect(result.stdout).toContain("Next commands:");
+    expect(result.stdout).toContain("re-prompt retro sess-late");
+    expect(result.stdout).toContain("re-prompt last");
+  });
+
+  it("go handles an empty Codex home without failing", async () => {
+    const codexHome = await mkdtemp(join(tmpdir(), "re-prompt-cli-empty-go-"));
+
+    const result = await runCli(["go", "--codex-home", codexHome]);
+
+    expect(result.exitCode).toBe(0);
+    expect(result.stdout).toContain("No Codex sessions found yet.");
+    expect(result.stdout).toContain("Run Codex on a coding task first");
+    expect(result.stdout).toContain("re-prompt doctor");
   });
 
   it("renders retro markdown and inspect JSON", async () => {
@@ -143,7 +169,7 @@ describe("CLI commands", () => {
     await utimes(selectedPath, new Date("2026-06-20T05:00:00.000Z"), new Date("2026-06-20T05:00:00.000Z"));
     await utimes(oversizedPath, new Date("2026-06-20T06:00:00.000Z"), new Date("2026-06-20T06:00:00.000Z"));
 
-    const result = await runCliWithEnv(["last", "--engine", "none", "--codex-home", codexHome], {
+    const result = await runCliWithEnv(["last", "--codex-home", codexHome], {
       RE_PROMPT_MAX_TRANSCRIPT_BYTES: "4096"
     });
 

@@ -69,6 +69,20 @@ re-prompt rules --since 30d
 - [retro report](docs/examples/retro-report.md)
 - [rules preview](docs/examples/rules-preview.md)
 
+## Dogfood / Feedback
+
+`v0.1.2` is ready for source-install dogfood, but it is not published to npm yet.
+
+Start with the [dogfood guide](docs/dogfood.md), read the [privacy guidance](docs/privacy-for-dogfood.md), and check the [known limitations](docs/known-limitations.md) before opening feedback.
+
+Use the GitHub issue templates for:
+
+- [retro report quality feedback](.github/ISSUE_TEMPLATE/retro-quality-feedback.yml)
+- [install or parser bugs](.github/ISSUE_TEMPLATE/install-or-parser-bug.yml)
+- [false positives or misleading findings](.github/ISSUE_TEMPLATE/false-positive-or-misleading.yml)
+
+Please do not paste raw Codex transcripts, private code, secrets, or unredacted command output into public issues.
+
 ## Commands
 
 ```bash

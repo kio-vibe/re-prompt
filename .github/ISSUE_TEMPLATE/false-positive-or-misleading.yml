@@ -1,0 +1,49 @@
+name: False positive or misleading finding
+description: Report a wrong correction, constraint, failure, or AGENTS.md suggestion.
+title: "[false-positive]: "
+labels: ["dogfood", "false-positive"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Please do not paste raw Codex transcripts, secrets, private code, or unredacted command output. Share only short redacted report excerpts.
+
+  - type: dropdown
+    id: finding_type
+    attributes:
+      label: What kind of false positive was it?
+      options:
+        - correction
+        - late constraint
+        - repeated failure
+        - verification gap
+        - scope drift
+        - AGENTS.md suggestion
+        - goal or outcome inference
+        - other
+    validations:
+      required: true
+
+  - type: textarea
+    id: excerpt
+    attributes:
+      label: Redacted report excerpt
+      description: Paste only the generated finding or prompt text, with private details replaced.
+      render: text
+    validations:
+      required: true
+
+  - type: textarea
+    id: why_wrong
+    attributes:
+      label: Why was it wrong or misleading?
+      description: Explain the mismatch without pasting raw transcript content.
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: What should re-prompt have done instead?
+    validations:
+      required: false

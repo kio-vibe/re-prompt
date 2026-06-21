@@ -51,7 +51,10 @@ dist/cli.js.map
 docs/examples/retro-report.md
 docs/examples/rules-preview.md
 docs/examples/scan-output.txt
+docs/dogfood.md
 docs/distribution-smoke.md
+docs/known-limitations.md
+docs/privacy-for-dogfood.md
 package.json
 README.md
 ```

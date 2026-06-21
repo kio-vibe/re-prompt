@@ -1,0 +1,60 @@
+name: Install or parser bug
+description: Report install, doctor, scan, parser, or oversized-session issues.
+title: "[bug]: "
+labels: ["bug", "dogfood"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Please do not upload raw Codex transcripts unless you have fully redacted them. Never include secrets, private code, or unredacted command output.
+
+  - type: input
+    id: version
+    attributes:
+      label: re-prompt version
+      placeholder: "0.1.2"
+    validations:
+      required: true
+
+  - type: textarea
+    id: command
+    attributes:
+      label: Command
+      render: shell
+    validations:
+      required: true
+
+  - type: textarea
+    id: output
+    attributes:
+      label: Output or error
+      description: Redact local paths, usernames, repo names, tokens, and private content.
+      render: text
+    validations:
+      required: true
+
+  - type: dropdown
+    id: area
+    attributes:
+      label: Area
+      options:
+        - install
+        - doctor
+        - scan
+        - last
+        - retro
+        - rules
+        - parser
+        - oversized session
+        - redaction
+        - other
+    validations:
+      required: true
+
+  - type: textarea
+    id: notes
+    attributes:
+      label: Additional notes
+      description: Include only redacted context needed to reproduce the issue.
+    validations:
+      required: false

@@ -1,0 +1,65 @@
+name: Retro report quality feedback
+description: Share whether a re-prompt report was useful, generic, or misleading.
+title: "[retro-quality]: "
+labels: ["dogfood", "report-quality"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Please do not paste raw Codex transcripts, secrets, private code, or unredacted command output. Share only short redacted report excerpts.
+
+  - type: textarea
+    id: command
+    attributes:
+      label: Command run
+      description: "Example: `re-prompt retro <session-id> --engine none`"
+      render: shell
+    validations:
+      required: true
+
+  - type: dropdown
+    id: usefulness
+    attributes:
+      label: Was the report useful?
+      options:
+        - "Yes, it found the real problem"
+        - "Partially useful"
+        - "Too generic"
+        - "Misleading or wrong"
+    validations:
+      required: true
+
+  - type: dropdown
+    id: prompt_quality
+    attributes:
+      label: Would you copy-paste the better prompt?
+      options:
+        - "Yes"
+        - "Maybe, with edits"
+        - "No, too generic"
+        - "No, misleading"
+    validations:
+      required: true
+
+  - type: textarea
+    id: useful
+    attributes:
+      label: What was useful?
+      description: Paste only non-sensitive report excerpts.
+    validations:
+      required: false
+
+  - type: textarea
+    id: wrong
+    attributes:
+      label: What was wrong, generic, or misleading?
+      description: Paste only non-sensitive report excerpts.
+    validations:
+      required: false
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: What should re-prompt have said instead?
+    validations:
+      required: false

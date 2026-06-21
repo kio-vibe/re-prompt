@@ -226,6 +226,7 @@ function buildBetterInitialPrompt(bundle: EvidenceBundle, goal: { text: string; 
   const failedCommands = actionableFailedCommands(bundle).slice(0, 3);
   const verificationCommands = bundle.concreteFacts.observedTestCommands.slice(0, 3);
   const fingerprints = bundle.concreteFacts.errorFingerprints.slice(0, 2);
+  const fallbackAnchor = firstPromptAnchor(bundle);
 
   if (constraints.length > 0 || corrections.length > 0 || files.length > 0 || failedCommands.length > 0) {
     lines.push("");
@@ -245,6 +246,13 @@ function buildBetterInitialPrompt(bundle: EvidenceBundle, goal: { text: string; 
     for (const fingerprint of fingerprints) {
       lines.push(`- Failure fingerprint to address: ${truncate(fingerprint, 220)}`);
     }
+  }
+  if (fallbackAnchor && !promptContainsAnchor(lines.join("\n"), bundle)) {
+    if (!lines.includes("Concrete context to include up front:")) {
+      lines.push("");
+      lines.push("Concrete context to include up front:");
+    }
+    lines.push(`- Observed anchor: ${formatCode(fallbackAnchor)}`);
   }
 
   lines.push("");
@@ -280,6 +288,28 @@ function inferTitle(bundle: EvidenceBundle, goal: { text: string; confidence: "l
 
 function inferGoal(bundle: EvidenceBundle): { text: string; confidence: "low" | "medium" | "high" } {
   const latestPlanPrompt = latestFollowUpPlanPrompt(bundle);
+  if (latestPlanPrompt && !bundle.uncertainty.goalKnown) {
+    const facts = [
+      bundle.concreteFacts.changedFiles.length > 0
+        ? `Codex changed ${bundle.concreteFacts.changedFiles.slice(0, 3).map(formatCode).join(", ")}.`
+        : undefined,
+      bundle.concreteFacts.commandsRun.length > 0
+        ? `Codex ran ${bundle.concreteFacts.commandsRun.slice(0, 3).map(formatCode).join(", ")}.`
+        : undefined
+    ].filter(Boolean);
+    return {
+      text: [
+        "The exact goal is unclear from the available transcript.",
+        "This session also contains multiple follow-up implementation plans, so a single session goal would be misleading.",
+        `Initial visible request: ${summarizeInitialPrompt(bundle.initialUserPrompt)}`,
+        `Latest visible request: ${summarizePlanPrompt(latestPlanPrompt)}`,
+        facts.length > 0 ? `What is clear: ${facts.join(" ")}` : undefined
+      ]
+        .filter(Boolean)
+        .join(" "),
+      confidence: "low"
+    };
+  }
   if (latestPlanPrompt) {
     return {
       text: [
@@ -451,4 +481,44 @@ function firstEvidencePath(evidence: EvidenceRef[]): string | undefined {
 
 function formatCode(value: string): string {
   return `\`${value}\``;
+}
+
+function firstPromptAnchor(bundle: EvidenceBundle): string | undefined {
+  const facts = [
+    ...bundle.concreteFacts.changedFiles,
+    ...actionableFailedCommands(bundle),
+    ...bundle.concreteFacts.observedTestCommands,
+    ...bundle.concreteFacts.packageManagers,
+    ...bundle.concreteFacts.lateConstraints,
+    ...bundle.concreteFacts.userCorrections
+  ].filter((value) => value.trim().length > 0);
+  if (facts.length > 0) {
+    return facts[0];
+  }
+
+  const anchorPriority: EvidenceBundle["anchors"][number]["kind"][] = [
+    "changed_file",
+    "file_path",
+    "failed_command",
+    "command",
+    "verification_command",
+    "package_manager",
+    "late_constraint",
+    "user_correction",
+    "error_fingerprint"
+  ];
+  for (const kind of anchorPriority) {
+    const anchor = bundle.anchors.find((item) => item.kind === kind && item.value.trim().length > 0);
+    if (anchor) {
+      return anchor.value;
+    }
+  }
+  return bundle.anchors.find((item) => item.value.trim().length > 0)?.value;
+}
+
+function promptContainsAnchor(text: string, bundle: EvidenceBundle): boolean {
+  if (/\b(pnpm|npm|yarn|bun|node|pytest|cargo|go|vitest|jest)\b/.test(text)) {
+    return true;
+  }
+  return bundle.anchors.some((anchor) => anchor.value.length >= 3 && text.includes(anchor.value));
 }

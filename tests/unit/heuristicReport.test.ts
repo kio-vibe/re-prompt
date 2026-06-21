@@ -87,6 +87,24 @@ describe("heuristic report", () => {
     expect(report.session.inferredGoal).not.toBe("Bootstrap the CLI project.");
   });
 
+  it("keeps unclear follow-up plan sessions low-confidence", async () => {
+    const bundle = lowConfidenceFollowUpPlanBundle();
+    const report = await new HeuristicOnlyAnalyzer().analyze(bundle, { engine: "none" });
+
+    expect(report.session.confidence).toBe("low");
+    expect(report.session.inferredGoal).toMatch(/unclear from the available transcript/i);
+    expect(report.session.inferredGoal).toContain("multiple follow-up implementation plans");
+    expect(lintRetroReport(report, bundle).filter((issue) => issue.severity === "error")).toEqual([]);
+  });
+
+  it("falls back to an observed anchor when concrete facts are sparse", async () => {
+    const bundle = anchorsOnlyBundle();
+    const report = await new HeuristicOnlyAnalyzer().analyze(bundle, { engine: "none" });
+
+    expect(report.betterInitialPrompt.prompt).toContain("Observed anchor: `src/pluginWrapper.ts`");
+    expect(lintRetroReport(report, bundle).filter((issue) => issue.severity === "error")).toEqual([]);
+  });
+
   it("keeps the main file-churn evidence focused on the repeated file", async () => {
     const bundle = minimalFileChurnBundle();
     const report = await new HeuristicOnlyAnalyzer().analyze(bundle, { engine: "none" });
@@ -162,6 +180,91 @@ function minimalFileChurnBundle(): EvidenceBundle {
     concreteFacts: {
       changedFiles: ["src/cli.ts", "README.md"],
       repeatedFiles: ["src/cli.ts"],
+      commandsRun: [],
+      failedCommands: [],
+      observedTestCommands: [],
+      packageManagers: [],
+      lateConstraints: [],
+      userCorrections: [],
+      errorFingerprints: []
+    },
+    uncertainty: {
+      goalKnown: true,
+      outcomeKnown: false,
+      verificationKnown: false
+    },
+    privacy: {
+      redactionApplied: false,
+      redactionCount: 0
+    }
+  };
+}
+
+function lowConfidenceFollowUpPlanBundle(): EvidenceBundle {
+  const bundle = minimalFileChurnBundle();
+  return {
+    ...bundle,
+    session: {
+      ...bundle.session,
+      sessionId: "sess-unclear-follow-up"
+    },
+    initialUserPrompt: "Please handle this.",
+    timeline: [
+      {
+        turnIndex: 1,
+        user: "Please handle this.",
+        fileChanges: ["src/cli.ts"]
+      },
+      {
+        turnIndex: 2,
+        user: "PLEASE IMPLEMENT THIS PLAN:\n# Follow-up Plugin Plan\n## Summary\nKeep plugin commands explicit.",
+        fileChanges: ["src/cli.ts"]
+      }
+    ],
+    uncertainty: {
+      goalKnown: false,
+      outcomeKnown: false,
+      verificationKnown: false,
+      reason: "The initial user prompt did not contain enough concrete task detail."
+    }
+  };
+}
+
+function anchorsOnlyBundle(): EvidenceBundle {
+  return {
+    product: "re-prompt",
+    bundleVersion: 1,
+    session: {
+      source: "codex",
+      sessionId: "sess-anchors-only",
+      transcriptPath: "/tmp/rollout-sess-anchors-only.jsonl",
+      turnCount: 2,
+      changedFileCount: 0,
+      failedCommandCount: 0
+    },
+    initialUserPrompt: "Review the plugin wrapper behavior and keep the command UX clear.",
+    timeline: [],
+    signals: [
+      {
+        kind: "verification_gap",
+        severity: "medium",
+        confidence: "medium",
+        turnIndex: 2,
+        title: "No verification before completion",
+        summary: "The plugin wrapper was discussed without observed verification.",
+        evidence: [{ turnIndex: 2, eventKind: "file_change", path: "src/pluginWrapper.ts" }],
+        suggestedActionKind: "workflow_change"
+      }
+    ],
+    changedFiles: [],
+    failedCommands: [],
+    userCorrections: [],
+    constraints: [],
+    anchors: [{ kind: "changed_file", value: "src/pluginWrapper.ts", turnIndex: 2, confidence: "high" }],
+    firsts: {},
+    concreteFacts: {
+      changedFiles: [],
+      repeatedFiles: [],
       commandsRun: [],
       failedCommands: [],
       observedTestCommands: [],

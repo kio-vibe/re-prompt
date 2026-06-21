@@ -5,9 +5,12 @@ import { fileURLToPath } from "node:url";
 import { Command } from "@commander-js/extra-typings";
 import pc from "picocolors";
 import { execa } from "execa";
+import { ClaudeCliAnalyzer, CodexCliAnalyzer } from "./analyzers/cliAnalyzer.js";
+import { assertHeuristicOnlyEngine, parseEngine, type Engine } from "./analyzers/engine.js";
 import { HeuristicOnlyAnalyzer } from "./analyzers/heuristicOnlyAnalyzer.js";
 import { buildEvidenceBundle } from "./core/evidence/buildEvidenceBundle.js";
 import { redactValue } from "./core/privacy/redact.js";
+import { lintRetroReport } from "./core/reportQuality.js";
 import { computeFrictionScore } from "./core/scoring/frictionScore.js";
 import { extractSignals } from "./core/signals/index.js";
 import type { EvidenceBundle, NormalizedSession, RetroReport, SessionSignal } from "./core/types.js";
@@ -22,7 +25,6 @@ import {
 import { normalizeCodexSession } from "./sources/codex/normalizeCodexSession.js";
 import { parseCodexJsonl } from "./sources/codex/parseCodexJsonl.js";
 
-type Engine = "none";
 type Format = "md" | "json";
 const DEFAULT_MAX_TRANSCRIPT_BYTES = 50 * 1024 * 1024;
 
@@ -45,7 +47,7 @@ export function createProgram(): Command {
   const program = new Command()
     .name("re-prompt")
     .description("A local-first Codex session postmortem CLI.")
-    .version("0.1.3");
+    .version("0.2.0");
 
   program
     .command("doctor")
@@ -76,12 +78,12 @@ export function createProgram(): Command {
     .description("Rank recent Codex sessions by local friction signals.")
     .option("--since <range>", "Time range such as 7d or 2026-06-01", "7d")
     .option("--top <count>", "Maximum rows to print", "10")
-    .option("--engine <engine>", "Analysis engine. This release supports only none.", "none")
+    .option("--engine <engine>", "Scan is heuristic-only; use none.", "none")
     .option("--codex-home <path>", "Override CODEX_HOME")
     .option("--repo <path>", "Filter by repo/cwd")
     .option("--format <format>", "table or json", "table")
     .action(async (options) => {
-      assertEngine(options.engine);
+      assertHeuristicOnlyEngine(options.engine, "scan");
       await scanCommand({
         since: options.since,
         top: Number(options.top),
@@ -94,13 +96,13 @@ export function createProgram(): Command {
   program
     .command("last")
     .description("Analyze the latest Codex stored rollout session.")
-    .option("--engine <engine>", "Analysis engine. This release supports only none.", "none")
+    .option("--engine <engine>", "Analysis engine: none, codex, or claude", "none")
     .option("--format <format>", "md or json", "md")
     .option("--codex-home <path>", "Override CODEX_HOME")
     .option("--repo <path>", "Filter by repo/cwd")
     .action(async (options) => {
-      assertEngine(options.engine);
       await lastCommand({
+        engine: parseEngine(options.engine),
         codexHome: options.codexHome,
         repo: options.repo,
         format: parseFormat(options.format)
@@ -110,13 +112,13 @@ export function createProgram(): Command {
   program
     .command("retro <session-id-or-path>")
     .description("Analyze a Codex session by id or path.")
-    .option("--engine <engine>", "Analysis engine. This release supports only none.", "none")
+    .option("--engine <engine>", "Analysis engine: none, codex, or claude", "none")
     .option("--format <format>", "md or json", "md")
     .option("--codex-home <path>", "Override CODEX_HOME")
     .action(async (reference, options) => {
-      assertEngine(options.engine);
+      const engine = parseEngine(options.engine);
       const candidate = await resolveSessionReference(reference, { codexHome: options.codexHome });
-      await retroCommand(candidate.transcriptPath, { engine: "none", format: parseFormat(options.format) });
+      await retroCommand(candidate.transcriptPath, { engine, format: parseFormat(options.format) });
     });
 
   program
@@ -180,7 +182,7 @@ async function doctorCommand(options: { codexHome?: string }): Promise<void> {
   }
   console.log(formatCheck(existsSync(resolve(process.cwd(), "AGENTS.md")), `repo AGENTS.md: ${resolve(process.cwd(), "AGENTS.md")}`));
   console.log("");
-  console.log("analyzer: heuristic-only local mode");
+  console.log("analyzer: heuristic-only by default; optional codex/claude for retro and last");
 }
 
 async function goCommand(options: { since: string; top: number; codexHome?: string; repo?: string }): Promise<void> {
@@ -323,6 +325,7 @@ function printReport(report: RetroReport, format: Format): void {
 }
 
 async function lastCommand(options: {
+  engine: Engine;
   codexHome?: string;
   repo?: string;
   format: Format;
@@ -341,7 +344,7 @@ async function lastCommand(options: {
     }
 
     try {
-      const result = await analyzeSession(candidate.transcriptPath, "none");
+      const result = await analyzeSession(candidate.transcriptPath, options.engine);
       result.report.selection = buildLastSelection(result, candidate, skipped, options.repo);
       printReport(result.report, options.format);
       return;
@@ -398,8 +401,41 @@ async function analyzeSession(path: string, engine: Engine): Promise<AnalyzeResu
       redactionCount: redacted.redactionCount
     }
   };
-  const report = await new HeuristicOnlyAnalyzer().analyze(redactedBundle, { engine });
+  const report = await analyzeBundle(redactedBundle, engine);
   return { session, signals, bundle: redactedBundle, report };
+}
+
+async function analyzeBundle(bundle: EvidenceBundle, engine: Engine): Promise<RetroReport> {
+  const heuristicAnalyzer = new HeuristicOnlyAnalyzer();
+  if (engine === "none") {
+    const report = await heuristicAnalyzer.analyze(bundle, { engine });
+    return withAnalysis(report, { requestedEngine: "none", usedEngine: "none", fallback: false });
+  }
+
+  try {
+    const analyzer = engine === "codex" ? new CodexCliAnalyzer() : new ClaudeCliAnalyzer();
+    const report = await analyzer.analyze(bundle, { engine });
+    const issues = lintRetroReport(report, bundle).filter((issue) => issue.severity === "error");
+    if (issues.length > 0) {
+      throw new Error(`Analyzer report failed quality checks: ${issues.map((issue) => issue.kind).join(", ")}`);
+    }
+    return withAnalysis(report, { requestedEngine: engine, usedEngine: engine, fallback: false });
+  } catch (error) {
+    const report = await heuristicAnalyzer.analyze(bundle, { engine: "none" });
+    return withAnalysis(report, {
+      requestedEngine: engine,
+      usedEngine: "none",
+      fallback: true,
+      fallbackReason: error instanceof Error ? error.message : String(error)
+    });
+  }
+}
+
+function withAnalysis(report: RetroReport, analysis: NonNullable<RetroReport["analysis"]>): RetroReport {
+  return {
+    ...report,
+    analysis
+  };
 }
 
 function buildLastSelection(
@@ -472,12 +508,6 @@ function parseFormat(format: string): Format {
     return format;
   }
   throw new Error(`Unsupported format "${format}". Use md or json.`);
-}
-
-function assertEngine(engine: string): asserts engine is Engine {
-  if (engine !== "none") {
-    throw new Error("This release supports only --engine none.");
-  }
 }
 
 function formatCheck(ok: boolean, text: string): string {

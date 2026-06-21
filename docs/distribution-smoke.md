@@ -25,13 +25,20 @@ pnpm pack
 mkdir /tmp/re-prompt-install-test
 cd /tmp/re-prompt-install-test
 npm init -y
-npm install /path/to/re-prompt-0.1.3.tgz
+npm install /path/to/re-prompt-0.2.0.tgz
 npx re-prompt --version
 npx re-prompt --help
 npx re-prompt go
 npx re-prompt doctor
 npx re-prompt scan --since 30d
 npx re-prompt last
+```
+
+Optional analyzer smoke, only on machines with the relevant CLI configured:
+
+```bash
+npx re-prompt retro <session-id-or-path> --engine codex
+npx re-prompt retro <session-id-or-path> --engine claude
 ```
 
 You can run the same flow from the repo:

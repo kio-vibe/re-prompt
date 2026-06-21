@@ -3,7 +3,7 @@
 `re-prompt` is not published to npm yet. For dogfood, install the packaged npm tarball attached to the GitHub Release.
 
 ```bash
-npm install -g https://github.com/kio-vibe/re-prompt/releases/download/v0.1.3/re-prompt-0.1.3.tgz
+npm install -g https://github.com/kio-vibe/re-prompt/releases/download/v0.2.0/re-prompt-0.2.0.tgz
 re-prompt --version
 re-prompt go
 ```
@@ -11,7 +11,7 @@ re-prompt go
 Expected version:
 
 ```txt
-0.1.3
+0.2.0
 ```
 
 ## First run
@@ -39,6 +39,15 @@ re-prompt retro <session-id-or-path>
 ```
 
 `doctor`, `scan`, `go`, and `last` need local Codex stored sessions. They are most useful on a machine where Codex CLI has already been used.
+
+Optional CLI-enhanced reports are available for explicit session analysis:
+
+```bash
+re-prompt retro <session-id-or-path> --engine codex
+re-prompt retro <session-id-or-path> --engine claude
+```
+
+The default report engine is still local heuristic mode.
 
 ## Uninstall
 

@@ -86,6 +86,18 @@ describe("heuristic report", () => {
     expect(report.betterInitialPrompt.prompt).toContain("Implement the latest provided plan");
     expect(report.session.inferredGoal).not.toBe("Bootstrap the CLI project.");
   });
+
+  it("keeps the main file-churn evidence focused on the repeated file", async () => {
+    const bundle = minimalFileChurnBundle();
+    const report = await new HeuristicOnlyAnalyzer().analyze(bundle, { engine: "none" });
+    const markdown = renderMarkdownReport(report);
+    const whereItGotExpensive = markdown.split("## Findings")[0] ?? "";
+
+    expect(report.executiveSummary).toContain("src/cli.ts");
+    expect(whereItGotExpensive).toContain("src/cli.ts");
+    expect(whereItGotExpensive).not.toContain("README.md");
+    expect(markdown).toContain("README.md");
+  });
 });
 
 async function bundleFromFixture(name: string): Promise<EvidenceBundle> {
@@ -95,4 +107,77 @@ async function bundleFromFixture(name: string): Promise<EvidenceBundle> {
   });
   const signals = extractSignals(session);
   return buildEvidenceBundle(session, signals);
+}
+
+function minimalFileChurnBundle(): EvidenceBundle {
+  return {
+    product: "re-prompt",
+    bundleVersion: 1,
+    session: {
+      source: "codex",
+      sessionId: "sess-file-churn",
+      transcriptPath: "/tmp/rollout-sess-file-churn.jsonl",
+      turnCount: 4,
+      changedFileCount: 2,
+      failedCommandCount: 0
+    },
+    initialUserPrompt: "Make a small CLI change.",
+    timeline: [],
+    signals: [
+      {
+        kind: "file_churn",
+        severity: "medium",
+        confidence: "medium",
+        turnIndex: 1,
+        title: "Same file changed repeatedly",
+        summary: "src/cli.ts was changed 3 times.",
+        evidence: [{ turnIndex: 1, eventKind: "file_change", path: "src/cli.ts" }],
+        suggestedActionKind: "rescue_prompt"
+      },
+      {
+        kind: "premature_edit",
+        severity: "medium",
+        confidence: "medium",
+        turnIndex: 2,
+        title: "Files changed before visible inspection or planning",
+        summary: "README.md changed before planning.",
+        evidence: [{ turnIndex: 2, eventKind: "file_change", path: "README.md" }],
+        suggestedActionKind: "workflow_change"
+      }
+    ],
+    changedFiles: [
+      { path: "src/cli.ts", changeCount: 3, firstTurn: 1, lastTurn: 4 },
+      { path: "README.md", changeCount: 1, firstTurn: 2, lastTurn: 2 }
+    ],
+    failedCommands: [],
+    userCorrections: [],
+    constraints: [],
+    anchors: [
+      { kind: "changed_file", value: "src/cli.ts", turnIndex: 1, confidence: "high" },
+      { kind: "changed_file", value: "README.md", turnIndex: 2, confidence: "high" }
+    ],
+    firsts: {
+      firstEditTurn: 1
+    },
+    concreteFacts: {
+      changedFiles: ["src/cli.ts", "README.md"],
+      repeatedFiles: ["src/cli.ts"],
+      commandsRun: [],
+      failedCommands: [],
+      observedTestCommands: [],
+      packageManagers: [],
+      lateConstraints: [],
+      userCorrections: [],
+      errorFingerprints: []
+    },
+    uncertainty: {
+      goalKnown: true,
+      outcomeKnown: false,
+      verificationKnown: false
+    },
+    privacy: {
+      redactionApplied: false,
+      redactionCount: 0
+    }
+  };
 }

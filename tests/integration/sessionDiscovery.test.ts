@@ -42,4 +42,25 @@ describe("session discovery", () => {
       sizeBytes: expect.any(Number)
     });
   });
+
+  it("excludes internal analyzer sessions from discovery", async () => {
+    const codexHome = await mkdtemp(join(tmpdir(), "re-prompt-internal-codex-home-"));
+    const day = join(codexHome, "sessions", "2026", "06", "20");
+    await mkdir(day, { recursive: true });
+    const visiblePath = join(day, "rollout-2026-06-20T01-00-00-visible.jsonl");
+    const internalPath = join(day, "rollout-2026-06-20T02-00-00-internal.jsonl");
+    await writeFile(visiblePath, "{\"type\":\"session_meta\",\"payload\":{\"id\":\"visible\",\"cwd\":\"/tmp/a\"}}\n", "utf8");
+    await writeFile(
+      internalPath,
+      [
+        "{\"type\":\"session_meta\",\"payload\":{\"id\":\"internal\",\"cwd\":\"/tmp/a\"}}",
+        "{\"type\":\"event_msg\",\"payload\":{\"message\":\"RE_PROMPT_INTERNAL_ANALYSIS\"}}"
+      ].join("\n"),
+      "utf8"
+    );
+
+    const sessions = await locateCodexSessions({ codexHome });
+
+    expect(sessions.map((session) => session.sessionId)).toEqual(["visible"]);
+  });
 });

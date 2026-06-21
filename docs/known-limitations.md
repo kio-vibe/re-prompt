@@ -1,20 +1,20 @@
 # Known Limitations
 
-`re-prompt v0.1.3` is an early dogfood release. It is useful for testing report quality, but it is intentionally narrow.
+`re-prompt v0.2.0` is an early dogfood release. It is useful for testing report quality, but it is intentionally narrow.
 
 ## Current scope
 
 - Codex stored rollout logs only
 - local-first
-- heuristic-only
+- heuristic-only by default
+- optional Codex/Claude CLI analyzers for `retro` and `last`
 - no telemetry
 - no npm package yet
 - AGENTS.md suggestions are dry-run previews only
 
 ## Not included yet
 
-- CodexExecAnalyzer
-- Claude Code support
+- Claude Code transcript source support
 - Cursor, Cline, Gemini, or other coding agents
 - dashboard
 - cloud sync

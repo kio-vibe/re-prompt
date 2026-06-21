@@ -9,7 +9,7 @@ A local-first Codex session postmortem CLI.
 `re-prompt` is not published to npm yet. For dogfood, install the packaged GitHub Release tarball and start the guided flow:
 
 ```bash
-npm install -g https://github.com/kio-vibe/re-prompt/releases/download/v0.1.3/re-prompt-0.1.3.tgz
+npm install -g https://github.com/kio-vibe/re-prompt/releases/download/v0.2.0/re-prompt-0.2.0.tgz
 re-prompt go
 ```
 
@@ -45,6 +45,15 @@ re-prompt retro <session-id-or-path>
 
 Copy the `Session` value from `scan` into `retro`.
 
+Optional CLI-enhanced reports:
+
+```bash
+re-prompt retro <session-id-or-path> --engine codex
+re-prompt retro <session-id-or-path> --engine claude
+```
+
+The default remains `--engine none`. `codex` and `claude` receive only a redacted evidence bundle, not raw transcripts.
+
 Preview conservative AGENTS.md suggestions from repeated recent evidence:
 
 ```bash
@@ -70,7 +79,7 @@ re-prompt rules --since 30d
 
 ## Dogfood / Feedback
 
-`v0.1.3` is ready for release-tarball dogfood, but it is not published to npm yet.
+`v0.2.0` is ready for release-tarball dogfood, but it is not published to npm yet.
 
 The fastest path is in the [release install guide](docs/install-from-release.md).
 
@@ -92,13 +101,17 @@ re-prompt scan --since 30d
 re-prompt go
 re-prompt last
 re-prompt retro <session-id-or-path>
+re-prompt retro <session-id-or-path> --engine codex
+re-prompt retro <session-id-or-path> --engine claude
 re-prompt inspect <session-id-or-path>
 re-prompt rules --since 30d
 ```
 
 ## Privacy
 
-`re-prompt` is local-first and heuristic-only. It reads local Codex transcripts, redacts common secrets and local home paths before analysis, and does not call external analyzers.
+`re-prompt` is local-first by default. It reads local Codex transcripts, redacts common secrets and local home paths before analysis, and uses deterministic heuristic reports unless you explicitly pass `--engine codex` or `--engine claude` to `retro` or `last`.
+
+Optional CLI analyzers receive only the redacted evidence bundle. They are not used for `scan`, `go`, or `rules`.
 
 AGENTS.md patches are dry-run only in this release.
 
@@ -127,7 +140,7 @@ pnpm pack
 mkdir /tmp/re-prompt-install-test
 cd /tmp/re-prompt-install-test
 npm init -y
-npm install /path/to/re-prompt-0.1.3.tgz
+npm install /path/to/re-prompt-0.2.0.tgz
 npx re-prompt --version
 npx re-prompt doctor
 ```

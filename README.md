@@ -13,7 +13,13 @@ npm install -g https://github.com/kio-vibe/re-prompt/releases/download/v0.1.3/re
 re-prompt go
 ```
 
-Requirements: Node.js 20+ and local Codex stored sessions. `re-prompt` reads `~/.codex/sessions` on your machine and is most useful where Codex CLI has already been used.
+Requirements:
+
+- Node.js 20+
+- local Codex stored sessions
+- access to `~/.codex/sessions` on your machine
+
+`re-prompt` is most useful where Codex CLI has already been used.
 
 ## Quick Start
 

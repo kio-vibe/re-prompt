@@ -25,7 +25,7 @@ pnpm pack
 mkdir /tmp/re-prompt-install-test
 cd /tmp/re-prompt-install-test
 npm init -y
-npm install /path/to/re-prompt-0.1.1.tgz
+npm install /path/to/re-prompt-0.1.2.tgz
 npx re-prompt --version
 npx re-prompt --help
 npx re-prompt doctor

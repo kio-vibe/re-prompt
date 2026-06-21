@@ -2,29 +2,31 @@
 
 This guide is for early testers trying `re-prompt` against their own local Codex sessions.
 
-The goal is not to collect raw transcripts. The goal is to learn whether `scan -> retro` finds the real moment where a session became expensive, misleading, or hard to recover.
+The goal is not to collect raw transcripts. The goal is to learn whether plugin-guided `go -> retro` finds the real moment where a session became expensive, misleading, or hard to recover.
 
-## Install from GitHub Release
+## Install the Codex Plugin
 
-`re-prompt` is not published to npm yet. Install the packaged GitHub Release tarball:
-
-```bash
-npm install -g https://github.com/kio-vibe/re-prompt/releases/download/v0.2.0/re-prompt-0.2.0.tgz
-re-prompt --version
-```
-
-Expected version:
-
-```txt
-0.2.0
-```
-
-Source install is a fallback for maintainers and contributors:
+`re-prompt` is not published to npm yet. Install the local Codex plugin from a repository clone:
 
 ```bash
 git clone https://github.com/kio-vibe/re-prompt.git
 cd re-prompt
-git checkout v0.2.0
+codex plugin marketplace add .agents/plugins
+codex plugin add re-prompt@re-prompt-local
+```
+
+Start a new Codex thread after installing the plugin. Then run:
+
+```text
+/re-prompt-install
+/re-prompt-go
+```
+
+`/re-prompt-install` checks the underlying CLI and asks before installing anything.
+
+Source CLI install is a fallback for maintainers and contributors:
+
+```bash
 pnpm install
 pnpm build
 node dist/cli.js --version
@@ -34,25 +36,24 @@ node dist/cli.js --version
 
 Fastest first look:
 
-```bash
-re-prompt go
+```text
+/re-prompt-go
 ```
 
 Quick latest-session report:
 
-```bash
-re-prompt last
+```text
+/re-prompt-last
 ```
 
 Best evaluation flow:
 
-```bash
-re-prompt doctor
-re-prompt scan --since 30d
-re-prompt retro <session-id-or-path>
+```text
+/re-prompt-go
+/re-prompt-retro <session-id-or-path>
 ```
 
-`doctor`, `scan`, `go`, and `last` need local Codex stored sessions under your Codex home. They are most useful on a machine where you have already used Codex CLI.
+These commands need local Codex stored sessions under your Codex home. They are most useful on a machine where you have already used Codex CLI.
 
 Optional analyzer comparison:
 
@@ -65,8 +66,8 @@ These engines receive only a redacted evidence bundle. `scan`, `go`, and `rules`
 
 Preview conservative AGENTS.md suggestions from repeated evidence:
 
-```bash
-re-prompt rules --since 30d
+```text
+/re-prompt-rules
 ```
 
 ## What to check

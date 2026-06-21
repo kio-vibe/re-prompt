@@ -1,0 +1,20 @@
+{
+  "name": "re-prompt-local",
+  "interface": {
+    "displayName": "re-prompt local"
+  },
+  "plugins": [
+    {
+      "name": "re-prompt",
+      "source": {
+        "source": "local",
+        "path": "./plugins/re-prompt"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Productivity"
+    }
+  ]
+}

@@ -65,7 +65,9 @@ If an issue requires sensitive detail to reproduce, describe the shape of the da
 
 `re-prompt` is local-first by default in `v0.2.0`.
 
-- It does not upload transcripts.
+- The Codex plugin runs local `re-prompt` commands under the hood.
+- The plugin does not upload transcripts.
+- The plugin does not auto-install the global CLI; `/re-prompt-install` asks before running install commands.
 - It uses deterministic heuristic reports unless you explicitly pass `--engine codex` or `--engine claude` to `retro` or `last`.
 - Optional CLI analyzers receive only a redacted evidence bundle, not raw transcripts.
 - It redacts common secrets and local home paths before generating reports.

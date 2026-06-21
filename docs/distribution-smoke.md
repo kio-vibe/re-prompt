@@ -2,7 +2,25 @@
 
 This smoke test checks that the package a user would install from a tarball exposes the same CLI that the repo documents.
 
-`re-prompt` is not published to npm yet. Use this page to validate source install and tarball install before publishing.
+`re-prompt` is not published to npm yet. Use this page to validate the CLI tarball and the source-hosted Codex plugin before publishing.
+
+## Codex Plugin Smoke
+
+From a fresh clone:
+
+```bash
+codex plugin marketplace add .agents/plugins
+codex plugin add re-prompt@re-prompt-local
+```
+
+Then start a new Codex thread and run:
+
+```text
+/re-prompt-install
+/re-prompt-go
+```
+
+The plugin source lives in `plugins/re-prompt`. It is distributed through the repository marketplace, not the npm tarball.
 
 ## Fresh Clone
 
@@ -62,6 +80,7 @@ docs/examples/scan-output.txt
 docs/dogfood.md
 docs/distribution-smoke.md
 docs/install-from-release.md
+docs/install-codex-plugin.md
 docs/known-limitations.md
 docs/privacy-for-dogfood.md
 package.json

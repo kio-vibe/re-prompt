@@ -7,14 +7,17 @@
 - Codex stored rollout logs only
 - local-first
 - heuristic-only by default
+- Codex plugin wrapper for first-run UX
 - optional Codex/Claude CLI analyzers for `retro` and `last`
 - no telemetry
 - no npm package yet
+- explicit CLI install only; the plugin does not auto-install global packages
 - AGENTS.md suggestions are dry-run previews only
 
 ## Not included yet
 
 - Claude Code transcript source support
+- Claude plugin wrapper
 - Cursor, Cline, Gemini, or other coding agents
 - dashboard
 - cloud sync

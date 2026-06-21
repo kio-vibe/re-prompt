@@ -1,4 +1,4 @@
-import { existsSync } from "node:fs";
+import { existsSync, realpathSync } from "node:fs";
 import { readFile, stat } from "node:fs/promises";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -405,6 +405,17 @@ async function main(): Promise<void> {
 
 const invokedPath = process.argv[1] ? resolve(process.argv[1]) : "";
 const currentPath = fileURLToPath(import.meta.url);
-if (invokedPath === currentPath || dirname(invokedPath).endsWith("src")) {
+if (sameFilePath(invokedPath, currentPath) || dirname(invokedPath).endsWith("src")) {
   void main();
+}
+
+function sameFilePath(left: string, right: string): boolean {
+  if (!left || !right) {
+    return false;
+  }
+  try {
+    return realpathSync(left) === realpathSync(right);
+  } catch {
+    return resolve(left) === resolve(right);
+  }
 }

@@ -4,6 +4,32 @@ A local-first Codex session postmortem CLI.
 
 `re-prompt` is not a generic prompt improver. It reads saved local Codex transcripts, finds where a coding session became expensive or misleading, and turns that evidence into better next prompts, rescue prompts, and conservative AGENTS.md suggestions.
 
+## Install
+
+`re-prompt` is not published to npm yet. For now, install from source:
+
+```bash
+git clone https://github.com/kio-vibe/re-prompt.git
+cd re-prompt
+pnpm install
+pnpm build
+node dist/cli.js --version
+```
+
+Maintainers can smoke-test the packaged CLI before npm publish:
+
+```bash
+pnpm pack
+mkdir /tmp/re-prompt-install-test
+cd /tmp/re-prompt-install-test
+npm init -y
+npm install /path/to/re-prompt-0.1.1.tgz
+npx re-prompt --version
+npx re-prompt doctor
+```
+
+`doctor`, `scan`, and `last` read local Codex stored sessions from `~/.codex/sessions`. They are most useful on a machine where Codex CLI has already been used.
+
 ## Quick Start
 
 Start by checking that Codex transcripts are visible, then scan recent sessions and choose one to analyze:

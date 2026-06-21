@@ -3,6 +3,7 @@ import { isImplementationPlanPrompt, isLikelyConstraintMessage, isLikelyUserCorr
 describe("command and prompt classifiers", () => {
   it("detects explicit corrections and constraints", () => {
     expect(isLikelyUserCorrection("아니, 그게 아니라 기존 API는 유지해야지")).toBe(true);
+    expect(isLikelyUserCorrection("이건 잘못 바꿨어")).toBe(true);
     expect(isLikelyUserCorrection("Don't change the public API")).toBe(true);
     expect(isLikelyConstraintMessage("Don't change the public API")).toBe(true);
   });
@@ -10,6 +11,7 @@ describe("command and prompt classifiers", () => {
   it("does not treat connective phrasing or release notes as corrections", () => {
     expect(isLikelyUserCorrection("아니면 scan 후 retro를 실행하세요")).toBe(false);
     expect(isLikelyUserCorrection("No telemetry")).toBe(false);
+    expect(isLikelyUserCorrection("세션을 잘못 읽으면 끝이라서 regression test가 중요합니다")).toBe(false);
   });
 
   it("treats long release-plan text as a plan rather than a correction", () => {

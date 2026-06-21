@@ -1,4 +1,4 @@
-import { copyFile, mkdir, mkdtemp, readFile, utimes, writeFile } from "node:fs/promises";
+import { copyFile, mkdir, mkdtemp, readFile, symlink, utimes, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
 import { execa } from "execa";
@@ -30,6 +30,21 @@ async function runCliWithEnv(args: string[], env: NodeJS.ProcessEnv) {
 }
 
 describe("CLI commands", () => {
+  it("runs when invoked through a package-style bin symlink", async () => {
+    const binDir = await mkdtemp(join(tmpdir(), "re-prompt-cli-bin-"));
+    const linkPath = join(binDir, "re-prompt.ts");
+    await symlink(join(process.cwd(), "src", "cli.ts"), linkPath);
+
+    const result = await execa("pnpm", ["exec", "tsx", linkPath, "--version"], {
+      cwd: process.cwd(),
+      env: { ...process.env },
+      reject: false
+    });
+
+    expect(result.exitCode).toBe(0);
+    expect(result.stdout).toBe("0.1.1");
+  });
+
   it("prints doctor and scan output for a temp CODEX_HOME", async () => {
     const { codexHome } = await makeCodexHomeWithSession("late-constraint.jsonl");
 

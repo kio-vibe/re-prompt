@@ -56,9 +56,9 @@ re-prompt rules --since 30d
 
 ## Privacy
 
-`re-prompt` 0.1.0 is local-first and heuristic-only. It reads local Codex transcripts, redacts common secrets and local home paths before analysis, and does not call external analyzers.
+`re-prompt` is local-first and heuristic-only. It reads local Codex transcripts, redacts common secrets and local home paths before analysis, and does not call external analyzers.
 
-AGENTS.md patches are dry-run only in 0.1.0.
+AGENTS.md patches are dry-run only in this release.
 
 ## Limitations
 

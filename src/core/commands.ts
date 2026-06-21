@@ -39,8 +39,15 @@ export function isImplementationPlanPrompt(text: string): boolean {
       preview
     ) &&
     /^##\s+(Test Plan|Assumptions|Implementation|Implementation Changes|Execution Steps|Release Steps)\b/im.test(preview);
+  const headingCount = preview.match(/^##\s+/gm)?.length ?? 0;
+  const hasOperationalCommandBlock = /```[\s\S]*?\b(gh pr create|gh release create|git tag|git push|pnpm test|pnpm build|node dist\/cli\.js)\b[\s\S]*?```/i.test(
+    preview
+  );
+  const hasReleaseWorkflowTerms = /\b(PR|pull request|release|tag|merge|v\d+\.\d+\.\d+)\b|릴리즈|태그|머지/i.test(
+    preview
+  );
 
-  return hasPlanTitle && hasPlanSections;
+  return (hasPlanTitle && hasPlanSections) || (headingCount >= 3 && hasOperationalCommandBlock && hasReleaseWorkflowTerms);
 }
 
 export function isLikelyUserCorrection(text: string): boolean {

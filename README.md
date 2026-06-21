@@ -6,37 +6,14 @@ A local-first Codex session postmortem CLI.
 
 ## Install
 
-`re-prompt` is not published to npm yet. For dogfood, install the packaged GitHub Release tarball:
+`re-prompt` is not published to npm yet. For dogfood, install the packaged GitHub Release tarball and start the guided flow:
 
 ```bash
 npm install -g https://github.com/kio-vibe/re-prompt/releases/download/v0.1.3/re-prompt-0.1.3.tgz
-re-prompt --version
 re-prompt go
 ```
 
-Source install is still available for maintainers and contributors:
-
-```bash
-git clone https://github.com/kio-vibe/re-prompt.git
-cd re-prompt
-pnpm install
-pnpm build
-node dist/cli.js --version
-```
-
-Maintainers can smoke-test the packaged CLI before npm publish:
-
-```bash
-pnpm pack
-mkdir /tmp/re-prompt-install-test
-cd /tmp/re-prompt-install-test
-npm init -y
-npm install /path/to/re-prompt-0.1.3.tgz
-npx re-prompt --version
-npx re-prompt doctor
-```
-
-`doctor`, `scan`, and `last` read local Codex stored sessions from `~/.codex/sessions`. They are most useful on a machine where Codex CLI has already been used.
+Requirements: Node.js 20+ and local Codex stored sessions. `re-prompt` reads `~/.codex/sessions` on your machine and is most useful where Codex CLI has already been used.
 
 ## Quick Start
 
@@ -59,6 +36,8 @@ re-prompt doctor
 re-prompt scan --since 30d
 re-prompt retro <session-id-or-path>
 ```
+
+Copy the `Session` value from `scan` into `retro`.
 
 Preview conservative AGENTS.md suggestions from repeated recent evidence:
 
@@ -122,3 +101,29 @@ AGENTS.md patches are dry-run only in this release.
 - Codex stored rollout logs only.
 - Best-effort parser because transcript schemas can change.
 - Heuristic suggestions are evidence-based, not guaranteed counterfactuals.
+
+## Maintainer Install
+
+Source install is available for maintainers and contributors:
+
+```bash
+git clone https://github.com/kio-vibe/re-prompt.git
+cd re-prompt
+pnpm install
+pnpm build
+node dist/cli.js --version
+```
+
+Maintainers can smoke-test the packaged CLI before npm publish:
+
+```bash
+pnpm pack
+mkdir /tmp/re-prompt-install-test
+cd /tmp/re-prompt-install-test
+npm init -y
+npm install /path/to/re-prompt-0.1.3.tgz
+npx re-prompt --version
+npx re-prompt doctor
+```
+
+See [distribution smoke](docs/distribution-smoke.md) for the full packaged CLI check.

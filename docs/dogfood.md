@@ -6,7 +6,9 @@ The goal is not to collect raw transcripts. The goal is to learn whether `scan -
 
 ## Install from source
 
-`re-prompt` is not published to npm yet. Use the tagged source release:
+`re-prompt` is not published to npm yet.
+
+This guide lives on `main`, but the current dogfood build is the `v0.1.2` tagged source release. Keep this guide open while you run the commands below. After `git checkout v0.1.2`, your local checkout may not contain these dogfood docs yet.
 
 ```bash
 git clone https://github.com/kio-vibe/re-prompt.git

@@ -73,6 +73,8 @@ re-prompt rules --since 30d
 
 `v0.1.2` is ready for source-install dogfood, but it is not published to npm yet.
 
+Dogfood docs live on `main`; the current test build is the `v0.1.2` tagged source release.
+
 Start with the [dogfood guide](docs/dogfood.md), read the [privacy guidance](docs/privacy-for-dogfood.md), and check the [known limitations](docs/known-limitations.md) before opening feedback.
 
 Use the GitHub issue templates for:

@@ -61,7 +61,7 @@ export class HeuristicOnlyAnalyzer implements Analyzer {
       },
       nextSessionChecklist: buildChecklist(bundle),
       limitations: [
-        "0.1.0 uses deterministic local heuristics only.",
+        "This release uses deterministic local heuristics only.",
         "Transcript parsing is best-effort and may miss new Codex event shapes.",
         "Low-confidence sections intentionally avoid inferring goals that are not visible in the transcript."
       ]

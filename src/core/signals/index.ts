@@ -6,11 +6,14 @@ import type {
   SessionSignal
 } from "../types.js";
 import { truncate, unique } from "../text.js";
-import { detectPackageManager, fingerprintFailureOutput, isImplementationPlanPrompt, isVerificationCommand } from "../commands.js";
+import {
+  detectPackageManager,
+  fingerprintFailureOutput,
+  isLikelyConstraintMessage,
+  isLikelyUserCorrection,
+  isVerificationCommand
+} from "../commands.js";
 
-const CORRECTION_RE =
-  /\b(no|not what i asked|wrong|stop|revert|rollback|i said|don't change|why did you|that's not|you changed)\b|아니|그게 아니라|틀렸|잘못|멈춰|되돌려|롤백|내가 말한 건|바꾸지 말랬|왜 바꿨어|이게 아니/i;
-const CONSTRAINT_RE = /\b(must|don't|without|preserve|keep|maintain|never|do not)\b|기존|유지|바꾸지|건드리지/i;
 const DONE_RE = /\b(done|fixed|implemented|complete|completed|resolved)\b|완료|수정했습니다|해결했습니다|고쳤습니다/i;
 export function extractSignals(session: NormalizedSession): SessionSignal[] {
   const signals = [
@@ -30,7 +33,7 @@ export function extractSignals(session: NormalizedSession): SessionSignal[] {
 function detectUserCorrections(session: NormalizedSession): SessionSignal[] {
   return session.turns.flatMap((turn) =>
     turn.userMessages
-      .filter((message) => CORRECTION_RE.test(message.text) && !isImplementationPlanPrompt(message.text))
+      .filter((message) => isLikelyUserCorrection(message.text))
       .map((message): SessionSignal => ({
         kind: "user_correction",
         severity: hasPriorFileChange(session, turn.index) ? "high" : "medium",
@@ -52,9 +55,8 @@ function detectLateConstraints(session: NormalizedSession): SessionSignal[] {
       turn.userMessages
         .filter(
           (message) =>
-            CONSTRAINT_RE.test(message.text) &&
-            !initialText.includes(message.text) &&
-            !isImplementationPlanPrompt(message.text)
+            isLikelyConstraintMessage(message.text) &&
+            !initialText.includes(message.text)
         )
         .map((message): SessionSignal => ({
           kind: "late_constraint",

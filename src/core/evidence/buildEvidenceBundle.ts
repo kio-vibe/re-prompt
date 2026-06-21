@@ -1,9 +1,12 @@
 import type { EvidenceAnchor, EvidenceBundle, NormalizedSession, SessionSignal } from "../types.js";
 import { truncate, unique } from "../text.js";
-import { detectPackageManager, fingerprintFailureOutput, isImplementationPlanPrompt, isVerificationCommand } from "../commands.js";
-
-const CONSTRAINT_RE = /\b(must|don't|without|preserve|keep|maintain|never|do not)\b|기존|유지|바꾸지|건드리지/i;
-const CORRECTION_RE = /\b(no|wrong|stop|revert|rollback|don't change|that's not)\b|아니|그게 아니라|틀렸|잘못|멈춰|되돌려/i;
+import {
+  detectPackageManager,
+  fingerprintFailureOutput,
+  isLikelyConstraintMessage,
+  isLikelyUserCorrection,
+  isVerificationCommand
+} from "../commands.js";
 
 export function buildEvidenceBundle(session: NormalizedSession, signals: SessionSignal[]): EvidenceBundle {
   const fileStats = new Map<string, { changeCount: number; firstTurn: number; lastTurn: number }>();
@@ -65,12 +68,12 @@ export function buildEvidenceBundle(session: NormalizedSession, signals: Session
   const changedFiles = [...fileStats.entries()].map(([path, stats]) => ({ path, ...stats }));
   const userCorrections = session.turns.flatMap((turn) =>
     turn.userMessages
-      .filter((message) => CORRECTION_RE.test(message.text) && !isImplementationPlanPrompt(message.text))
+      .filter((message) => isLikelyUserCorrection(message.text))
       .map((message) => ({ turnIndex: turn.index, text: truncate(message.text, 500) }))
   );
   const constraints = session.turns.flatMap((turn) =>
     turn.userMessages
-      .filter((message) => CONSTRAINT_RE.test(message.text) && !isImplementationPlanPrompt(message.text))
+      .filter((message) => isLikelyConstraintMessage(message.text))
       .map((message) => ({ turnIndex: turn.index, text: truncate(message.text, 500), late: turn.index > 1 }))
   );
   for (const correction of userCorrections) {

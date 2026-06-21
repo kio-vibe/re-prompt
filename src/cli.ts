@@ -36,8 +36,8 @@ interface AnalyzeResult {
 export function createProgram(): Command {
   const program = new Command()
     .name("re-prompt")
-    .description("Turn messy Codex sessions into better next prompts.")
-    .version("0.1.0");
+    .description("A local-first Codex session postmortem CLI.")
+    .version("0.1.1");
 
   program
     .command("doctor")
@@ -52,7 +52,7 @@ export function createProgram(): Command {
     .description("Rank recent Codex sessions by local friction signals.")
     .option("--since <range>", "Time range such as 7d or 2026-06-01", "7d")
     .option("--top <count>", "Maximum rows to print", "10")
-    .option("--engine <engine>", "Analysis engine. 0.1.0 supports only none.", "none")
+    .option("--engine <engine>", "Analysis engine. This release supports only none.", "none")
     .option("--codex-home <path>", "Override CODEX_HOME")
     .option("--repo <path>", "Filter by repo/cwd")
     .option("--format <format>", "table or json", "table")
@@ -70,7 +70,7 @@ export function createProgram(): Command {
   program
     .command("last")
     .description("Analyze the latest Codex stored rollout session.")
-    .option("--engine <engine>", "Analysis engine. 0.1.0 supports only none.", "none")
+    .option("--engine <engine>", "Analysis engine. This release supports only none.", "none")
     .option("--format <format>", "md or json", "md")
     .option("--codex-home <path>", "Override CODEX_HOME")
     .option("--repo <path>", "Filter by repo/cwd")
@@ -86,7 +86,7 @@ export function createProgram(): Command {
   program
     .command("retro <session-id-or-path>")
     .description("Analyze a Codex session by id or path.")
-    .option("--engine <engine>", "Analysis engine. 0.1.0 supports only none.", "none")
+    .option("--engine <engine>", "Analysis engine. This release supports only none.", "none")
     .option("--format <format>", "md or json", "md")
     .option("--codex-home <path>", "Override CODEX_HOME")
     .action(async (reference, options) => {
@@ -114,10 +114,10 @@ export function createProgram(): Command {
     .option("--codex-home <path>", "Override CODEX_HOME")
     .option("--repo <path>", "Target repo root", process.cwd())
     .option("--max-rules <count>", "Maximum rules", "5")
-    .option("--apply", "Out of scope for 0.1.0")
+    .option("--apply", "Out of scope for this release")
     .action(async (options) => {
       if (options.apply) {
-        throw new Error("--apply is intentionally out of scope for re-prompt 0.1.0. Dry-run only.");
+        throw new Error("--apply is intentionally out of scope for this release. Dry-run only.");
       }
       await rulesCommand({
         since: options.since,
@@ -156,7 +156,7 @@ async function doctorCommand(options: { codexHome?: string }): Promise<void> {
   }
   console.log(formatCheck(existsSync(resolve(process.cwd(), "AGENTS.md")), `repo AGENTS.md: ${resolve(process.cwd(), "AGENTS.md")}`));
   console.log("");
-  console.log("0.1.0 analyzer: heuristic-only local mode");
+  console.log("analyzer: heuristic-only local mode");
 }
 
 async function scanCommand(options: {
@@ -340,7 +340,7 @@ async function loadNormalizedSession(path: string): Promise<NormalizedSession> {
   const maxTranscriptBytes = getMaxTranscriptBytes();
   if (fileStat.size > maxTranscriptBytes) {
     throw new Error(
-      `Session transcript is too large for re-prompt 0.1.0 (${formatBytes(fileStat.size)} > ${formatBytes(maxTranscriptBytes)}): ${path}`
+      `Session transcript is too large for this release (${formatBytes(fileStat.size)} > ${formatBytes(maxTranscriptBytes)}): ${path}`
     );
   }
   const content = await readFile(path, "utf8");
@@ -386,7 +386,7 @@ function parseFormat(format: string): Format {
 
 function assertEngine(engine: string): asserts engine is Engine {
   if (engine !== "none") {
-    throw new Error("re-prompt 0.1.0 supports only --engine none.");
+    throw new Error("This release supports only --engine none.");
   }
 }
 

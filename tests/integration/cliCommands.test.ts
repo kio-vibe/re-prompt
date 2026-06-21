@@ -110,7 +110,7 @@ describe("CLI commands", () => {
       RE_PROMPT_MAX_TRANSCRIPT_BYTES: "1024"
     });
     expect(retro.exitCode).toBe(1);
-    expect(retro.stderr).toContain("too large for re-prompt 0.1.0");
+    expect(retro.stderr).toContain("too large for this release");
   });
 
   it("last explains selected session and skipped newer oversized sessions", async () => {

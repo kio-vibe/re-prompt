@@ -1,16 +1,33 @@
 {
   "name": "re-prompt",
-  "version": "0.1.0",
-  "description": "Turn messy Codex sessions into better next prompts.",
+  "version": "0.1.1",
+  "description": "Local-first Codex session postmortem CLI.",
   "type": "module",
   "bin": {
     "re-prompt": "./dist/cli.js"
   },
   "files": [
     "dist",
+    "docs",
     "README.md",
     "AGENTS.md"
   ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/kio-vibe/re-prompt.git"
+  },
+  "keywords": [
+    "codex",
+    "cli",
+    "postmortem",
+    "retrospective",
+    "prompting",
+    "agents-md"
+  ],
+  "homepage": "https://github.com/kio-vibe/re-prompt#readme",
+  "bugs": {
+    "url": "https://github.com/kio-vibe/re-prompt/issues"
+  },
   "engines": {
     "node": ">=20"
   },

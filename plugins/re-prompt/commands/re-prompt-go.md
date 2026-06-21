@@ -23,7 +23,7 @@ If missing, run `/re-prompt-install` first. Do not install automatically from th
 Run:
 
 ```bash
-re-prompt go
+re-prompt go --next-style plugin
 ```
 
 ## Result
@@ -32,6 +32,7 @@ Summarize:
 
 - whether Codex sessions were found
 - the top ranked high-friction session
-- the exact `re-prompt retro <session-id>` command suggested by the CLI
+- the exact `/re-prompt-retro <session-id>` slash command suggested by the CLI
+- `/re-prompt-last` and `/re-prompt-rules` as secondary next steps
 
-Do not paste raw transcripts. If no sessions exist, tell the user to run Codex on a coding task first and then retry.
+Do not paste raw transcripts. If no sessions exist, tell the user to run Codex on a coding task first and then retry. Respond in the user's language.

@@ -152,8 +152,11 @@ function signalDiagnosis(signal: SessionSignal, bundle: EvidenceBundle): string 
     return `${changedCount} files changed${files ? `, including ${files}` : ""}.`;
   }
   if (signal.kind === "file_churn") {
-    const file = firstEvidencePath(signal.evidence) ?? bundle.concreteFacts.repeatedFiles[0] ?? "the same file";
-    return `The same file was edited repeatedly: ${formatCode(file)}.`;
+    const file = firstEvidencePath(signal.evidence) ?? bundle.concreteFacts.repeatedFiles[0] ?? "a key file";
+    const repeatedCount = bundle.concreteFacts.repeatedFiles.length;
+    return repeatedCount > 1
+      ? `Repeated edits accumulated across key files; this finding is anchored to ${formatCode(file)}.`
+      : `Repeated edits accumulated around ${formatCode(file)}.`;
   }
   if (signal.kind === "premature_edit") {
     const file = firstEvidencePath(signal.evidence) ?? bundle.concreteFacts.changedFiles[0] ?? "a file";

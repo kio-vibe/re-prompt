@@ -36,7 +36,7 @@ interface AnalyzeResult {
 export function createProgram(): Command {
   const program = new Command()
     .name("re-prompt")
-    .description("Turn messy Codex sessions into better next prompts.")
+    .description("A local-first Codex session postmortem CLI.")
     .version("0.1.0");
 
   program

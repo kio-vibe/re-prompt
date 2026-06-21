@@ -41,6 +41,13 @@ describe("signal extraction", () => {
     const signals = extractSignals(await loadSession("plan-followups-not-late-constraint.jsonl"));
 
     expect(signals.some((signal) => signal.kind === "late_constraint")).toBe(false);
+    expect(signals.some((signal) => signal.kind === "user_correction")).toBe(false);
+  });
+
+  it("does not treat Korean comparison questions as corrections", async () => {
+    const signals = extractSignals(await loadSession("korean-status-question-not-correction.jsonl"));
+
+    expect(signals.some((signal) => signal.kind === "user_correction")).toBe(false);
   });
 
   it("does not treat inspection commands with test paths as verification", async () => {

@@ -1,0 +1,11 @@
+$ re-prompt scan --since 30d
+
+Friction  Session                              Turns  Main issue
+86        sess-api-compatibility              8      late_constraint
+72        sess-repeated-test-failure          6      repeated_failure
+41        sess-unverified-edit                3      verification_gap
+0         sess-oversized-rollout              0      too_large
+
+Use the session id or transcript path from a high-friction row with:
+
+$ re-prompt retro sess-api-compatibility

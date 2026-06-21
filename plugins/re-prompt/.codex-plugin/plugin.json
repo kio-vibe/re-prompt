@@ -1,0 +1,40 @@
+{
+  "name": "re-prompt",
+  "version": "0.2.0",
+  "description": "Run local re-prompt Codex session retrospectives from inside Codex.",
+  "author": {
+    "name": "kio-vibe",
+    "url": "https://github.com/kio-vibe"
+  },
+  "homepage": "https://github.com/kio-vibe/re-prompt",
+  "repository": "https://github.com/kio-vibe/re-prompt",
+  "license": "MIT",
+  "keywords": [
+    "codex",
+    "retrospective",
+    "prompting",
+    "local-first",
+    "agents-md"
+  ],
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "re-prompt",
+    "shortDescription": "Review local Codex sessions and improve the next prompt",
+    "longDescription": "Use re-prompt from Codex to inspect local stored Codex sessions, find high-friction turns, generate better next prompts, and preview conservative AGENTS.md suggestions without uploading raw transcripts.",
+    "developerName": "kio-vibe",
+    "category": "Developer Tools",
+    "capabilities": [
+      "Interactive",
+      "Read"
+    ],
+    "websiteURL": "https://github.com/kio-vibe/re-prompt",
+    "privacyPolicyURL": "https://github.com/kio-vibe/re-prompt/blob/main/docs/privacy-for-dogfood.md",
+    "termsOfServiceURL": "https://github.com/kio-vibe/re-prompt",
+    "defaultPrompt": [
+      "Use re-prompt to review my latest Codex session",
+      "Find my highest-friction Codex session",
+      "Preview AGENTS.md rules from recent sessions"
+    ],
+    "brandColor": "#2563EB"
+  }
+}

@@ -11,8 +11,9 @@ Selected session:
 Source: codex
 Session: sess-api-compatibility
 Friction: High, 86/100
-Outcome: unclear from transcript
+Outcome: unclear
 Main cause: late_constraint
+Analyzer: requested none, used none
 
 ## What you were trying to do
 
@@ -26,6 +27,13 @@ Evidence:
 - Turn 3: User added a late constraint: "do not read every rollout file into memory; use bounded metadata reads."
 - Turn 5: `node dist/cli.js scan --since 30d` failed with a JavaScript heap out-of-memory error.
 - Turn 7: `pnpm test` and `pnpm build` were run after the bounded discovery fix.
+
+## Findings
+
+- F1: Constraint arrived after work had started (Turn 3)
+  Evidence: Turn 3: User added a late constraint: "do not read every rollout file into memory; use bounded metadata reads."
+- F2: Same command failure repeated (Turn 5)
+  Evidence: Turn 5: `node dist/cli.js scan --since 30d` failed with a JavaScript heap out-of-memory error.
 
 ## Better initial prompt
 
@@ -52,4 +60,4 @@ No durable AGENTS.md rule suggested.
 ## Limitations
 
 - This is a synthetic example, not a real user transcript.
-- `re-prompt` is heuristic-only and may use low confidence when the transcript does not show the final outcome.
+- `re-prompt` uses heuristic reports by default and may use low confidence when the transcript does not show the final outcome.

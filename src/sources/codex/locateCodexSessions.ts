@@ -4,6 +4,7 @@ import { homedir } from "node:os";
 import { isAbsolute, join, resolve } from "node:path";
 import fg from "fast-glob";
 import { parseCodexJsonl } from "./parseCodexJsonl.js";
+import { INTERNAL_ANALYSIS_MARKER } from "../../analyzers/cliAnalyzer.js";
 import { getObject, asString } from "../../core/text.js";
 
 export interface SessionCandidate {
@@ -14,6 +15,7 @@ export interface SessionCandidate {
   sizeBytes: number;
   cwd?: string;
   startedAt?: string;
+  isInternalAnalysis?: boolean;
 }
 
 export interface LocateCodexSessionsOptions {
@@ -55,14 +57,16 @@ export async function locateCodexSessions(options: LocateCodexSessionsOptions = 
         mtimeMs: fileStat.mtimeMs,
         sizeBytes: fileStat.size,
         cwd: meta.cwd,
-        startedAt: meta.startedAt
+        startedAt: meta.startedAt,
+        isInternalAnalysis: meta.isInternalAnalysis
       };
     })
   );
 
+  const visibleCandidates = candidates.filter((candidate) => !candidate.isInternalAnalysis);
   const filtered = options.repoPath
-    ? candidates.filter((candidate) => !candidate.cwd || resolve(candidate.cwd) === resolve(options.repoPath!))
-    : candidates;
+    ? visibleCandidates.filter((candidate) => !candidate.cwd || resolve(candidate.cwd) === resolve(options.repoPath!))
+    : visibleCandidates;
 
   return filtered.sort((a, b) => b.mtimeMs - a.mtimeMs || b.transcriptPath.localeCompare(a.transcriptPath));
 }
@@ -84,7 +88,8 @@ export async function resolveSessionReference(
       mtimeMs: fileStat.mtimeMs,
       sizeBytes: fileStat.size,
       cwd: meta.cwd,
-      startedAt: meta.startedAt
+      startedAt: meta.startedAt,
+      isInternalAnalysis: meta.isInternalAnalysis
     };
   }
 
@@ -101,7 +106,7 @@ export async function resolveSessionReference(
 export async function readSessionMetaPrefix(
   path: string,
   maxBytes = DEFAULT_META_READ_BYTES
-): Promise<{ sessionId?: string; cwd?: string; startedAt?: string }> {
+): Promise<{ sessionId?: string; cwd?: string; startedAt?: string; isInternalAnalysis?: boolean }> {
   const handle = await open(path, "r");
   try {
     const buffer = Buffer.alloc(maxBytes);
@@ -112,14 +117,15 @@ export async function readSessionMetaPrefix(
   }
 }
 
-function readSessionMeta(content: string): { sessionId?: string; cwd?: string; startedAt?: string } {
+function readSessionMeta(content: string): { sessionId?: string; cwd?: string; startedAt?: string; isInternalAnalysis?: boolean } {
   const parsed = parseCodexJsonl(content.split(/\r?\n/).slice(0, 20).join("\n"));
   const event = parsed.events.find((item) => item.type === "session_meta");
   const payload = getObject(event?.payload);
   return {
     sessionId: asString(payload?.id),
     cwd: asString(payload?.cwd),
-    startedAt: asString(payload?.timestamp)
+    startedAt: asString(payload?.timestamp),
+    isInternalAnalysis: content.includes(INTERNAL_ANALYSIS_MARKER)
   };
 }
 

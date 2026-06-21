@@ -1,11 +1,20 @@
 import type { RetroReport } from "../core/types.js";
 
 export function renderMarkdownReport(report: RetroReport): string {
-  const evidenceLines = report.findings.flatMap((finding) =>
-    finding.evidence.map((evidence) => {
-      const detail = evidence.quote ?? evidence.summary ?? evidence.path ?? evidence.command ?? "Evidence";
-      return `- Turn ${evidence.turnIndex}: ${detail}`;
-    })
+  const mainFinding = report.findings[0];
+  const evidenceLines = (mainFinding?.evidence ?? []).map((evidence) => {
+    const detail = evidence.quote ?? evidence.summary ?? evidence.path ?? evidence.command ?? "Evidence";
+    return `- Turn ${evidence.turnIndex}: ${detail}`;
+  });
+  const evidenceSection = evidenceLines.length > 0 ? ["Evidence:", ...evidenceLines] : ["Evidence: not enough turn evidence available."];
+  const findingLines = report.findings.flatMap((finding) =>
+    [
+      `- ${finding.id}: ${finding.title} (Turn ${finding.evidence[0]?.turnIndex ?? "?"})`,
+      ...finding.evidence.slice(0, 2).map((evidence) => {
+        const detail = evidence.quote ?? evidence.summary ?? evidence.path ?? evidence.command ?? "Evidence";
+        return `  Evidence: Turn ${evidence.turnIndex}: ${detail}`;
+      })
+    ]
   );
   const selectionLines = report.selection
     ? [
@@ -24,6 +33,15 @@ export function renderMarkdownReport(report: RetroReport): string {
         ""
       ].filter((line): line is string => Boolean(line))
     : [];
+  const analysisLines = report.analysis
+    ? [
+        `Analyzer: requested ${report.analysis.requestedEngine}, used ${report.analysis.usedEngine}${
+          report.analysis.fallback ? " (fallback)" : ""
+        }`,
+        report.analysis.fallbackReason ? `Analyzer note: ${report.analysis.fallbackReason}` : undefined,
+        ""
+      ].filter((line): line is string => Boolean(line))
+    : [];
 
   return [
     "# re-prompt retro",
@@ -34,6 +52,7 @@ export function renderMarkdownReport(report: RetroReport): string {
     `Friction: ${capitalize(report.friction.label)}, ${report.friction.score}/100`,
     `Outcome: ${report.session.outcome}`,
     `Main cause: ${report.friction.mainCause}`,
+    ...analysisLines,
     "",
     "## What you were trying to do",
     "",
@@ -43,8 +62,11 @@ export function renderMarkdownReport(report: RetroReport): string {
     "",
     report.executiveSummary,
     "",
-    "Evidence:",
-    ...evidenceLines,
+    ...evidenceSection,
+    "",
+    "## Findings",
+    "",
+    ...findingLines,
     "",
     "## Better initial prompt",
     "",

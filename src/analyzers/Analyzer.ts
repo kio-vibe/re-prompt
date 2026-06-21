@@ -1,7 +1,8 @@
 import type { EvidenceBundle, RetroReport } from "../core/types.js";
+import type { Engine } from "./engine.js";
 
 export interface AnalyzerOptions {
-  engine: "none";
+  engine: Engine;
 }
 
 export interface Analyzer {

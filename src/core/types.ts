@@ -1,4 +1,5 @@
 export type SourceKind = "codex";
+export type Engine = "none" | "codex" | "claude";
 
 export interface ParseError {
   lineNumber: number;
@@ -256,6 +257,12 @@ export interface EvidenceBundle {
 
 export interface RetroReport {
   schemaVersion: 1;
+  analysis?: {
+    requestedEngine: Engine;
+    usedEngine: Engine;
+    fallback: boolean;
+    fallbackReason?: string;
+  };
   session: {
     source: "codex";
     sessionId: string;

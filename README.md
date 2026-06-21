@@ -1,16 +1,18 @@
 # re-prompt
 
-A local-first Codex session postmortem CLI.
+A local-first Codex session postmortem plugin and CLI.
 
 `re-prompt` is not a generic prompt improver. It reads saved local Codex transcripts, finds where a coding session became expensive or misleading, and turns that evidence into better next prompts, rescue prompts, and conservative AGENTS.md suggestions.
 
 ## Install
 
-`re-prompt` is not published to npm yet. For dogfood, install the packaged GitHub Release tarball and start the guided flow:
+`re-prompt` is not published to npm yet. For dogfood, start with the Codex plugin:
 
 ```bash
-npm install -g https://github.com/kio-vibe/re-prompt/releases/download/v0.1.3/re-prompt-0.1.3.tgz
-re-prompt go
+git clone https://github.com/kio-vibe/re-prompt.git
+cd re-prompt
+codex plugin marketplace add .agents/plugins
+codex plugin add re-prompt@re-prompt-local
 ```
 
 Requirements:
@@ -19,36 +21,44 @@ Requirements:
 - local Codex stored sessions
 - access to `~/.codex/sessions` on your machine
 
-`re-prompt` is most useful where Codex CLI has already been used.
+The plugin uses the `re-prompt` CLI under the hood. Run `/re-prompt-install` from Codex to check or install it explicitly.
 
 ## Quick Start
 
 Fastest first look:
 
-```bash
-re-prompt go
+```text
+/re-prompt-go
 ```
 
 Quick latest-session report:
 
-```bash
-re-prompt last
+```text
+/re-prompt-last
 ```
 
 Best evaluation flow:
 
-```bash
-re-prompt doctor
-re-prompt scan --since 30d
-re-prompt retro <session-id-or-path>
+```text
+/re-prompt-go
+/re-prompt-retro <session-id-or-path>
 ```
 
-Copy the `Session` value from `scan` into `retro`.
+Copy the `Session` value from `/re-prompt-go` into `/re-prompt-retro`.
+
+Optional CLI-enhanced reports:
+
+```bash
+re-prompt retro <session-id-or-path> --engine codex
+re-prompt retro <session-id-or-path> --engine claude
+```
+
+The default remains `--engine none`. `codex` and `claude` receive only a redacted evidence bundle, not raw transcripts.
 
 Preview conservative AGENTS.md suggestions from repeated recent evidence:
 
-```bash
-re-prompt rules --since 30d
+```text
+/re-prompt-rules
 ```
 
 ## What It Does
@@ -70,9 +80,9 @@ re-prompt rules --since 30d
 
 ## Dogfood / Feedback
 
-`v0.1.3` is ready for release-tarball dogfood, but it is not published to npm yet.
+`v0.2.0` is ready for Codex plugin dogfood, but it is not published to npm yet.
 
-The fastest path is in the [release install guide](docs/install-from-release.md).
+The fastest path is in the [Codex plugin install guide](docs/install-codex-plugin.md).
 
 Start with the [dogfood guide](docs/dogfood.md), read the [privacy guidance](docs/privacy-for-dogfood.md), and check the [known limitations](docs/known-limitations.md) before opening feedback.
 
@@ -86,19 +96,35 @@ Please do not paste raw Codex transcripts, private code, secrets, or unredacted 
 
 ## Commands
 
+Codex plugin commands:
+
+```text
+/re-prompt-install
+/re-prompt-go
+/re-prompt-last
+/re-prompt-retro <session-id-or-path>
+/re-prompt-rules
+```
+
+Underlying CLI commands:
+
 ```bash
 re-prompt doctor
 re-prompt scan --since 30d
 re-prompt go
 re-prompt last
 re-prompt retro <session-id-or-path>
+re-prompt retro <session-id-or-path> --engine codex
+re-prompt retro <session-id-or-path> --engine claude
 re-prompt inspect <session-id-or-path>
 re-prompt rules --since 30d
 ```
 
 ## Privacy
 
-`re-prompt` is local-first and heuristic-only. It reads local Codex transcripts, redacts common secrets and local home paths before analysis, and does not call external analyzers.
+`re-prompt` is local-first by default. It reads local Codex transcripts, redacts common secrets and local home paths before analysis, and uses deterministic heuristic reports unless you explicitly pass `--engine codex` or `--engine claude` to `retro` or `last`.
+
+Optional CLI analyzers receive only the redacted evidence bundle. They are not used for `scan`, `go`, or `rules`.
 
 AGENTS.md patches are dry-run only in this release.
 
@@ -110,7 +136,7 @@ AGENTS.md patches are dry-run only in this release.
 
 ## Maintainer Install
 
-Source install is available for maintainers and contributors:
+Source CLI install is available for maintainers and contributors:
 
 ```bash
 git clone https://github.com/kio-vibe/re-prompt.git
@@ -127,7 +153,7 @@ pnpm pack
 mkdir /tmp/re-prompt-install-test
 cd /tmp/re-prompt-install-test
 npm init -y
-npm install /path/to/re-prompt-0.1.3.tgz
+npm install /path/to/re-prompt-0.2.0.tgz
 npx re-prompt --version
 npx re-prompt doctor
 ```

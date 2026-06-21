@@ -1,9 +1,11 @@
-# Install from GitHub Release
+# Install the CLI from GitHub Release
 
-`re-prompt` is not published to npm yet. For dogfood, install the packaged npm tarball attached to the GitHub Release.
+`re-prompt` is not published to npm yet. This installs the CLI that powers the Codex plugin.
+
+If you prefer the plugin-first flow, start with [install the Codex plugin](install-codex-plugin.md).
 
 ```bash
-npm install -g https://github.com/kio-vibe/re-prompt/releases/download/v0.1.3/re-prompt-0.1.3.tgz
+npm install -g https://github.com/kio-vibe/re-prompt/releases/download/v0.2.0/re-prompt-0.2.0.tgz
 re-prompt --version
 re-prompt go
 ```
@@ -11,12 +13,12 @@ re-prompt go
 Expected version:
 
 ```txt
-0.1.3
+0.2.0
 ```
 
 ## First run
 
-Use the guided command first:
+Use the guided CLI command first:
 
 ```bash
 re-prompt go
@@ -39,6 +41,15 @@ re-prompt retro <session-id-or-path>
 ```
 
 `doctor`, `scan`, `go`, and `last` need local Codex stored sessions. They are most useful on a machine where Codex CLI has already been used.
+
+Optional CLI-enhanced reports are available for explicit session analysis:
+
+```bash
+re-prompt retro <session-id-or-path> --engine codex
+re-prompt retro <session-id-or-path> --engine claude
+```
+
+The default report engine is still local heuristic mode. The Codex plugin exposes the same flows through `/re-prompt-go`, `/re-prompt-last`, and `/re-prompt-retro`.
 
 ## Uninstall
 

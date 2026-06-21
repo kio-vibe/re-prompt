@@ -112,7 +112,10 @@ describe("heuristic report", () => {
     const whereItGotExpensive = markdown.split("## Findings")[0] ?? "";
 
     expect(report.executiveSummary).toContain("src/cli.ts");
+    expect(report.executiveSummary).toContain("Repeated edits");
+    expect(report.executiveSummary.toLowerCase()).not.toContain("same file");
     expect(whereItGotExpensive).toContain("src/cli.ts");
+    expect(whereItGotExpensive.toLowerCase()).not.toContain("same file");
     expect(whereItGotExpensive).not.toContain("README.md");
     expect(markdown).toContain("README.md");
   });
@@ -147,7 +150,7 @@ function minimalFileChurnBundle(): EvidenceBundle {
         severity: "medium",
         confidence: "medium",
         turnIndex: 1,
-        title: "Same file changed repeatedly",
+        title: "Repeated file edits",
         summary: "src/cli.ts was changed 3 times.",
         evidence: [{ turnIndex: 1, eventKind: "file_change", path: "src/cli.ts" }],
         suggestedActionKind: "rescue_prompt"

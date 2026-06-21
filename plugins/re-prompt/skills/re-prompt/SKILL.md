@@ -94,6 +94,7 @@ Use these only when the user explicitly asks for Codex or Claude enhanced analys
 
 When summarizing a report for the user, include:
 
+- Respond in the user's language. If the user writes Korean, summarize in Korean.
 - selected session id and confidence
 - main friction point
 - strongest turn evidence

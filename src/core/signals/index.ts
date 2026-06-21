@@ -194,7 +194,7 @@ function detectFileChurn(session: NormalizedSession): SessionSignal[] {
       severity: "medium",
       confidence: "medium",
       turnIndex: value.firstTurn,
-      title: "Same file changed repeatedly",
+      title: "Repeated file edits",
       summary: `${path} was changed ${value.count} times from Turn ${value.firstTurn} to Turn ${value.lastTurn}.`,
       evidence: [{ turnIndex: value.firstTurn, eventKind: "file_change", path }],
       suggestedActionKind: "rescue_prompt"

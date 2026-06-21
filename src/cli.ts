@@ -26,6 +26,7 @@ import { normalizeCodexSession } from "./sources/codex/normalizeCodexSession.js"
 import { parseCodexJsonl } from "./sources/codex/parseCodexJsonl.js";
 
 type Format = "md" | "json";
+type NextStyle = "cli" | "plugin";
 const DEFAULT_MAX_TRANSCRIPT_BYTES = 50 * 1024 * 1024;
 
 interface ScanRow {
@@ -47,7 +48,7 @@ export function createProgram(): Command {
   const program = new Command()
     .name("re-prompt")
     .description("A local-first Codex session postmortem CLI.")
-    .version("0.2.0");
+    .version("0.2.1");
 
   program
     .command("doctor")
@@ -62,12 +63,14 @@ export function createProgram(): Command {
     .description("Guide a first re-prompt run against recent Codex sessions.")
     .option("--since <range>", "Time range such as 30d or 2026-06-01", "30d")
     .option("--top <count>", "Maximum sessions to show", "5")
+    .option("--next-style <style>", "Next command style: cli or plugin", "cli")
     .option("--codex-home <path>", "Override CODEX_HOME")
     .option("--repo <path>", "Filter by repo/cwd")
     .action(async (options) => {
       await goCommand({
         since: options.since,
         top: Number(options.top),
+        nextStyle: parseNextStyle(options.nextStyle),
         codexHome: options.codexHome,
         repo: options.repo
       });
@@ -185,7 +188,7 @@ async function doctorCommand(options: { codexHome?: string }): Promise<void> {
   console.log("analyzer: heuristic-only by default; optional codex/claude for retro and last");
 }
 
-async function goCommand(options: { since: string; top: number; codexHome?: string; repo?: string }): Promise<void> {
+async function goCommand(options: { since: string; top: number; nextStyle: NextStyle; codexHome?: string; repo?: string }): Promise<void> {
   const codexHome = options.codexHome ?? defaultCodexHome();
   const sessionsDir = resolve(codexHome, "sessions");
   const maxTranscriptBytes = getMaxTranscriptBytes();
@@ -233,9 +236,15 @@ async function goCommand(options: { since: string; top: number; codexHome?: stri
   printScanTable(rows);
   console.log("");
   console.log("Next commands:");
-  console.log(`- Analyze the top session: re-prompt retro ${rows[0]!.sessionId}`);
-  console.log("- Quick latest-session report: re-prompt last");
-  console.log("- Preview durable repo rules: re-prompt rules --since 30d");
+  if (options.nextStyle === "plugin") {
+    console.log(`- Analyze the top session: /re-prompt-retro ${rows[0]!.sessionId}`);
+    console.log("- Quick latest-session report: /re-prompt-last");
+    console.log("- Preview durable repo rules: /re-prompt-rules");
+  } else {
+    console.log(`- Analyze the top session: re-prompt retro ${rows[0]!.sessionId}`);
+    console.log("- Quick latest-session report: re-prompt last");
+    console.log("- Preview durable repo rules: re-prompt rules --since 30d");
+  }
 }
 
 async function scanCommand(options: {
@@ -508,6 +517,13 @@ function parseFormat(format: string): Format {
     return format;
   }
   throw new Error(`Unsupported format "${format}". Use md or json.`);
+}
+
+function parseNextStyle(style: string): NextStyle {
+  if (style === "cli" || style === "plugin") {
+    return style;
+  }
+  throw new Error(`Unsupported next command style "${style}". Use cli or plugin.`);
 }
 
 function formatCheck(ok: boolean, text: string): string {

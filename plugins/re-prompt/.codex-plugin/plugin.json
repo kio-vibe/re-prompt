@@ -1,6 +1,6 @@
 {
   "name": "re-prompt",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "description": "Run local re-prompt Codex session retrospectives from inside Codex.",
   "author": {
     "name": "kio-vibe",

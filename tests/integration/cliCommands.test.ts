@@ -74,7 +74,7 @@ describe("CLI commands", () => {
     });
 
     expect(result.exitCode).toBe(0);
-    expect(result.stdout).toBe("0.2.0");
+    expect(result.stdout).toBe("0.2.1");
   });
 
   it("prints doctor and scan output for a temp CODEX_HOME", async () => {
@@ -103,6 +103,42 @@ describe("CLI commands", () => {
     expect(result.stdout).toContain("Next commands:");
     expect(result.stdout).toContain("re-prompt retro sess-late");
     expect(result.stdout).toContain("re-prompt last");
+  });
+
+  it("can guide plugin users with slash-command next steps", async () => {
+    const { codexHome } = await makeCodexHomeWithSession("late-constraint.jsonl");
+
+    const result = await runCli(["go", "--codex-home", codexHome, "--top", "3", "--next-style", "plugin"]);
+
+    expect(result.exitCode).toBe(0);
+    expect(result.stdout).toContain("Next commands:");
+    expect(result.stdout).toContain("/re-prompt-retro sess-late");
+    expect(result.stdout).toContain("/re-prompt-last");
+    expect(result.stdout).toContain("/re-prompt-rules");
+    expect(result.stdout).not.toContain("re-prompt retro sess-late");
+  });
+
+  it("rejects unsupported next command styles", async () => {
+    const { codexHome } = await makeCodexHomeWithSession("late-constraint.jsonl");
+
+    const result = await runCli(["go", "--codex-home", codexHome, "--next-style", "terminal"]);
+
+    expect(result.exitCode).toBe(1);
+    expect(result.stderr).toContain('Unsupported next command style "terminal"');
+    expect(result.stderr).toContain("Use cli or plugin");
+  });
+
+  it("keeps plugin command guidance plugin-first and language-aware", async () => {
+    const goCommand = await readFile("plugins/re-prompt/commands/re-prompt-go.md", "utf8");
+    const installCommand = await readFile("plugins/re-prompt/commands/re-prompt-install.md", "utf8");
+    const skill = await readFile("plugins/re-prompt/skills/re-prompt/SKILL.md", "utf8");
+
+    expect(goCommand).toContain("re-prompt go --next-style plugin");
+    expect(goCommand).toContain("/re-prompt-retro <session-id>");
+    expect(installCommand).toContain("command -v re-prompt");
+    expect(installCommand).toContain("Only inspect repository docs or plugin files if one of these checks fails");
+    expect(skill).toContain("Respond in the user's language");
+    expect(skill).toContain("Do not ask the user to paste raw rollout JSONL");
   });
 
   it("go handles an empty Codex home without failing", async () => {

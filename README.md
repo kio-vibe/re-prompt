@@ -82,7 +82,7 @@ Preview conservative AGENTS.md suggestions from repeated recent evidence:
 
 ## Dogfood / Feedback
 
-`v0.2.1` is ready for Codex plugin dogfood, but it is not published to npm yet.
+`v0.2.2` is ready for Codex plugin dogfood, but it is not published to npm yet.
 
 The fastest path is in the [Codex plugin install guide](docs/install-codex-plugin.md).
 
@@ -95,6 +95,22 @@ Use the GitHub issue templates for:
 - [false positives or misleading findings](.github/ISSUE_TEMPLATE/false-positive-or-misleading.yml)
 
 Please do not paste raw Codex transcripts, private code, secrets, or unredacted command output into public issues.
+
+## If `/re-p` Does Not Show re-prompt
+
+First confirm the plugin is installed:
+
+```bash
+codex plugin list
+```
+
+Look for `re-prompt@re-prompt-local`, then open a new Codex thread or restart the Codex app. If `/re-p` still does not show `re-prompt`, install the personal skill picker shim from this repository:
+
+```bash
+bash scripts/install-personal-skill.sh
+```
+
+This copies only `plugins/re-prompt/skills/re-prompt/SKILL.md` to `$CODEX_HOME/skills/re-prompt/SKILL.md`. It does not upload transcripts, change Codex sessions, or install global packages.
 
 ## Commands
 
@@ -155,7 +171,7 @@ pnpm pack
 mkdir /tmp/re-prompt-install-test
 cd /tmp/re-prompt-install-test
 npm init -y
-npm install /path/to/re-prompt-0.2.1.tgz
+npm install /path/to/re-prompt-0.2.2.tgz
 npx re-prompt --version
 npx re-prompt doctor
 ```

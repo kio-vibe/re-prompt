@@ -19,6 +19,28 @@ Pass the repository root to `codex plugin marketplace add`; Codex finds `.agents
 
 Start a new Codex thread after installing the plugin so Codex can load the commands and skill.
 
+## If `/re-p` Does Not Show re-prompt
+
+First confirm the plugin is enabled:
+
+```bash
+codex plugin list
+```
+
+Look for `re-prompt@re-prompt-local`, then open a new Codex thread or restart the Codex app. If the plugin is enabled but `/re-p` still does not show `re-prompt`, install the personal skill picker shim:
+
+```bash
+bash scripts/install-personal-skill.sh
+```
+
+The shim copies the existing plugin skill from `plugins/re-prompt/skills/re-prompt/SKILL.md` to `$CODEX_HOME/skills/re-prompt/SKILL.md`, so the composer can index it as a personal skill. It does not upload transcripts, change Codex sessions, or install global packages.
+
+To preview the install path without writing files:
+
+```bash
+bash scripts/install-personal-skill.sh --dry-run
+```
+
 ## First Run
 
 In Codex, run:

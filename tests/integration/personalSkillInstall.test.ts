@@ -11,30 +11,52 @@ async function runInstaller(codexHome: string, args: string[] = []) {
   });
 }
 
+const personalSkillNames = [
+  "re-prompt",
+  "re-prompt-go",
+  "re-prompt-install",
+  "re-prompt-last",
+  "re-prompt-retro",
+  "re-prompt-rules"
+];
+
 describe("personal skill installer", () => {
-  it("prints the target personal skill path without writing files in dry-run mode", async () => {
+  it("prints all target personal skill paths without writing files in dry-run mode", async () => {
     const codexHome = await mkdtemp(join(tmpdir(), "re-prompt-skill-dry-run-"));
-    const target = join(codexHome, "skills", "re-prompt", "SKILL.md");
 
     const result = await runInstaller(codexHome, ["--dry-run"]);
 
     expect(result.exitCode).toBe(0);
     expect(result.stdout).toContain("Dry run: no files written.");
-    expect(result.stdout).toContain(`Target: ${target}`);
-    await expect(stat(target)).rejects.toThrow();
+    expect(result.stdout).toContain("/re-prompt-go");
+    for (const skillName of personalSkillNames) {
+      const target = join(codexHome, "skills", skillName, "SKILL.md");
+      expect(result.stdout).toContain(`Target: ${target}`);
+      await expect(stat(target)).rejects.toThrow();
+    }
   });
 
-  it("installs the re-prompt skill shim into CODEX_HOME personal skills", async () => {
+  it("installs command-specific re-prompt skill shims into CODEX_HOME personal skills", async () => {
     const codexHome = await mkdtemp(join(tmpdir(), "re-prompt-skill-install-"));
-    const target = join(codexHome, "skills", "re-prompt", "SKILL.md");
 
     const result = await runInstaller(codexHome);
 
     expect(result.exitCode).toBe(0);
-    expect(result.stdout).toContain("Installed personal skill shim.");
-    const installed = await readFile(target, "utf8");
-    expect(installed).toContain("name: re-prompt");
-    expect(installed).toContain("description:");
-    expect(installed).toContain("Do not ask the user to paste raw rollout JSONL");
+    expect(result.stdout).toContain("Installed 6 personal skill shims.");
+    for (const skillName of personalSkillNames) {
+      const target = join(codexHome, "skills", skillName, "SKILL.md");
+      const installed = await readFile(target, "utf8");
+      expect(installed).toContain(`name: ${skillName}`);
+      expect(installed).toContain("description:");
+      expect(installed).toContain("Do not ask the user to paste raw rollout JSONL");
+    }
+
+    const goSkill = await readFile(
+      join(codexHome, "skills", "re-prompt-go", "SKILL.md"),
+      "utf8"
+    );
+    expect(goSkill).toContain("re-prompt go --next-style plugin --language auto");
+    expect(goSkill).toContain("Friction");
+    expect(goSkill).toContain("꼬였을 가능성");
   });
 });

@@ -74,7 +74,7 @@ describe("CLI commands", () => {
     });
 
     expect(result.exitCode).toBe(0);
-    expect(result.stdout).toBe("0.2.3");
+    expect(result.stdout).toBe("0.2.4");
   });
 
   it("prints doctor and scan output for a temp CODEX_HOME", async () => {

@@ -50,7 +50,7 @@ export function createProgram(): Command {
   const program = new Command()
     .name("re-prompt")
     .description("A local-first Codex session postmortem CLI.")
-    .version("0.2.3");
+    .version("0.2.4");
 
   program
     .command("doctor")

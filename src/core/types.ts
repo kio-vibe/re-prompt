@@ -374,6 +374,7 @@ export interface PromptCoachReport {
   oneLineTake: string;
   whatYouActuallyWrote: string;
   whereItWentWrong: string;
+  shortRewriteInYourVoice?: string;
   rewriteInYourVoice: string;
   whyThisWorks: string;
   rescueLine: string;

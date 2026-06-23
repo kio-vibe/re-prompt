@@ -44,6 +44,9 @@ Use the local `re-prompt` CLI to help the user choose one stored Codex session, 
 - Respond in the user's language. For short slash-command messages, use the surrounding conversation language. If recent conversation is Korean, respond in Korean.
 - Do not announce that you are using the skill unless the user asks.
 - Start with the result, not the process.
+- Before running candidate or coach commands, choose one fixed response language from the conversation: Korean uses `ko`; English uses `en`.
+- Do not use visible process narration such as "I'll pull candidates", "코칭 리포트를 만들게요", or "The CLI is current enough".
+- The visible answer must start directly with the candidate list or the coaching result.
 
 ## First Step
 
@@ -58,17 +61,17 @@ Minimum supported CLI version for this skill: `0.4.0`.
 If the command is missing, say that the CLI is not installed and ask before running any install command. The current release tarball is:
 
 ```bash
-npm install -g https://github.com/kio-vibe/re-prompt/releases/download/v0.4.1/re-prompt-0.4.1.tgz
+npm install -g https://github.com/kio-vibe/re-prompt/releases/download/v0.4.2/re-prompt-0.4.2.tgz
 ```
 
 If `re-prompt --version` is older than `0.4.0`, do not run `re-prompt candidates`, `scan`, `go`, `coach`, `retro`, direct JSONL reads, or any fallback script. Tell the user briefly that the CLI is outdated and ask whether they want to update:
 
 ```text
-re-prompt CLI가 오래됐습니다. 현재 버전은 <version>이고, /re-prompt에는 0.4.0 이상이 필요합니다. 아래 명령으로 0.4.1로 업데이트해도 될까요?
+re-prompt CLI가 오래됐습니다. 현재 버전은 <version>이고, /re-prompt에는 0.4.0 이상이 필요합니다. 아래 명령으로 0.4.2로 업데이트해도 될까요?
 ```
 
 ```bash
-npm install -g https://github.com/kio-vibe/re-prompt/releases/download/v0.4.1/re-prompt-0.4.1.tgz
+npm install -g https://github.com/kio-vibe/re-prompt/releases/download/v0.4.2/re-prompt-0.4.2.tgz
 ```
 
 Do not install automatically from a natural-language request.
@@ -91,8 +94,11 @@ Never open stored rollout files directly as a recovery path.
 When the user starts with `/re-prompt` or asks to use re-prompt without a specific session:
 
 ```bash
-re-prompt candidates --format json --top 3 --language auto
+re-prompt candidates --format json --top 3 --language ko
+re-prompt candidates --format json --top 3 --language en
 ```
+
+Use exactly one of those commands, based on the fixed response language chosen from the conversation. Do not use `--language auto` in the plugin flow.
 
 Summarize the result as:
 
@@ -109,8 +115,11 @@ If the user replies with a number and the previous assistant message contains a 
 If there is no usable candidate list in the conversation context, rerun:
 
 ```bash
-re-prompt candidates --format json --top 3 --language auto
+re-prompt candidates --format json --top 3 --language ko
+re-prompt candidates --format json --top 3 --language en
 ```
+
+Use the same fixed response language as above.
 
 Then ask the user to choose again.
 
@@ -119,20 +128,24 @@ Then ask the user to choose again.
 When a candidate is selected, run:
 
 ```bash
-re-prompt coach <session-id> --engine codex --language auto
+re-prompt coach <session-id> --engine codex --language ko
+re-prompt coach <session-id> --engine codex --language en
 ```
+
+Use exactly one of those commands, matching the response language used for the candidate list.
 
 Use `--engine claude` only when the user explicitly asks for Claude. If the Codex or Claude analyzer falls back, explain briefly that re-prompt used a safer local fallback.
 
 Summarize the coach output in this order:
 
-1. "내가 보기엔 이 세션은 이 문제였어요" / "My read is that this session had this problem"
-2. "네가 실제로 이렇게 말했어요" / "You actually wrote something like this"
-3. "다음엔 이렇게 말하면 돼요" / "Next time, say it like this"
-4. "왜 이게 더 좋은지" / "Why this works"
-5. "중간에 끊고 싶으면 이 한 문장" / "One rescue line"
+1. "다음엔 이렇게 말하면 돼요" / "Say this next time"
+2. the short, copy-pasteable rewrite
+3. "조금 더 탄탄하게 쓰면" / "If you want the fuller version"
+4. the fuller rewrite
+5. "왜 이게 더 좋은지" / "Why this works"
+6. "중간에 끊고 싶으면 이 한 문장" / "One rescue line"
 
-Put `rewriteInYourVoice` near the top. Keep the user's sentence shape and tone whenever the coach output provides it.
+Put `shortRewriteInYourVoice` first when it exists. Keep the user's sentence shape and tone whenever the coach output provides it. If `shortRewriteInYourVoice` is absent, use the first compact paragraph of `rewriteInYourVoice` as the short rewrite.
 
 ## Continue The Loop
 

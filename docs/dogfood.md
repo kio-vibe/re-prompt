@@ -9,14 +9,14 @@ The goal is not to collect raw transcripts. The goal is to learn whether one `/r
 `re-prompt` is not published to npm yet. Install or update the packaged CLI first:
 
 ```bash
-npm install -g https://github.com/kio-vibe/re-prompt/releases/download/v0.4.1/re-prompt-0.4.1.tgz
+npm install -g https://github.com/kio-vibe/re-prompt/releases/download/v0.4.2/re-prompt-0.4.2.tgz
 re-prompt --version
 ```
 
 Expected version:
 
 ```txt
-0.4.1
+0.4.2
 ```
 
 ## Install The Codex Plugin

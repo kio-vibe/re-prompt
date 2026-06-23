@@ -9,14 +9,14 @@ A Codex session prompt coach plugin and CLI.
 `re-prompt` is not published to npm yet. For dogfood, install or update the packaged CLI first:
 
 ```bash
-npm install -g https://github.com/kio-vibe/re-prompt/releases/download/v0.4.1/re-prompt-0.4.1.tgz
+npm install -g https://github.com/kio-vibe/re-prompt/releases/download/v0.4.2/re-prompt-0.4.2.tgz
 re-prompt --version
 ```
 
 Expected version:
 
 ```txt
-0.4.1
+0.4.2
 ```
 
 Then install the Codex plugin:
@@ -101,7 +101,7 @@ re-prompt rules --since 30d
 
 ## Dogfood / Feedback
 
-`v0.4.1` is ready for Codex plugin dogfood, but it is not published to npm yet.
+`v0.4.2` is ready for Codex plugin dogfood, but it is not published to npm yet.
 
 The fastest path is in the [Codex plugin install guide](docs/install-codex-plugin.md).
 
@@ -189,7 +189,7 @@ pnpm pack
 mkdir /tmp/re-prompt-install-test
 cd /tmp/re-prompt-install-test
 npm init -y
-npm install /path/to/re-prompt-0.4.1.tgz
+npm install /path/to/re-prompt-0.4.2.tgz
 npx re-prompt --version
 npx re-prompt doctor
 ```

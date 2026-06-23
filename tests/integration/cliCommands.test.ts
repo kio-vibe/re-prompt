@@ -74,7 +74,7 @@ describe("CLI commands", () => {
     });
 
     expect(result.exitCode).toBe(0);
-    expect(result.stdout).toBe("0.4.1");
+    expect(result.stdout).toBe("0.4.2");
   });
 
   it("prints doctor and scan output for a temp CODEX_HOME", async () => {
@@ -217,17 +217,22 @@ describe("CLI commands", () => {
     const skill = await readFile("plugins/re-prompt/skills/re-prompt/SKILL.md", "utf8");
 
     expect(skill).toContain("Respond in the user's language");
+    expect(skill).toContain("Before running candidate or coach commands, choose one fixed response language");
+    expect(skill).toContain("Do not use visible process narration");
     expect(skill).toContain("Do not paste raw CLI output verbatim");
     expect(skill).toContain("in the user's own voice");
     expect(skill).toContain("Do not ask the user to paste raw rollout JSONL");
-    expect(skill).toContain("re-prompt candidates --format json --top 3 --language auto");
+    expect(skill).toContain("re-prompt candidates --format json --top 3 --language ko");
+    expect(skill).toContain("re-prompt candidates --format json --top 3 --language en");
+    expect(skill).toContain("Do not use `--language auto` in the plugin flow");
     expect(skill).toContain("ask the user to choose only a number");
     expect(skill).toContain("map that number to the matching `sessionId`");
-    expect(skill).toContain("re-prompt coach <session-id> --engine codex --language auto");
+    expect(skill).toContain("re-prompt coach <session-id> --engine codex --language ko");
+    expect(skill).toContain("re-prompt coach <session-id> --engine codex --language en");
     expect(skill).toContain("After coaching one candidate, suggest another candidate");
     expect(skill).toContain("Do not show internal fields such as scores");
     expect(skill).toContain("Minimum supported CLI version for this skill: `0.4.0`");
-    expect(skill).toContain("v0.4.1/re-prompt-0.4.1.tgz");
+    expect(skill).toContain("v0.4.2/re-prompt-0.4.2.tgz");
     expect(skill).toContain("Do not directly read, grep, cat, parse, or inspect `~/.codex/sessions/**/*.jsonl`");
     expect(skill).toContain("Do not use ad hoc Node/Python scripts");
     expect(skill).toContain("If `re-prompt candidates` exits non-zero");
@@ -272,9 +277,10 @@ describe("CLI commands", () => {
     });
 
     expect(result.exitCode).toBe(0);
-    expect(result.stdout).toContain("# re-prompt coach");
+    expect(result.stdout).toContain("# re-prompt 코치");
     expect(result.stdout).toContain("분석: requested codex, used codex");
-    expect(result.stdout).toContain("네 말투로 고치면 이렇게예요");
+    expect(result.stdout).toContain("다음엔 이렇게 말하면 돼요");
+    expect(result.stdout).toContain("조금 더 탄탄하게 쓰면");
     const args = JSON.parse(await readFile(argsFile, "utf8")) as string[];
     expect(args).toEqual(expect.arrayContaining(["exec", "--ephemeral", "--ignore-user-config", "--ignore-rules", "--output-schema"]));
     const stdin = await readFile(stdinFile, "utf8");
@@ -325,6 +331,24 @@ describe("CLI commands", () => {
     expect(json.schemaVersion).toBe(1);
     expect(json.analysis).toMatchObject({ requestedEngine: "none", usedEngine: "none", fallback: false });
     expect(json.rewriteInYourVoice).toContain("Update README title only");
+  });
+
+  it("renders Korean coach output with the short rewrite first and without internal jargon", async () => {
+    const { sessionPath } = await makeCodexHomeWithSession("late-constraint.jsonl");
+
+    const result = await runCli(["coach", sessionPath, "--engine", "none", "--language", "ko"]);
+
+    expect(result.exitCode).toBe(0);
+    expect(result.stdout.startsWith("# re-prompt 코치")).toBe(true);
+    expect(result.stdout).toContain("## 다음엔 이렇게 말하면 돼요");
+    expect(result.stdout).toContain("## 조금 더 탄탄하게 쓰면");
+    expect(result.stdout).toContain("중요한 조건이 뒤늦게 나온 흔적");
+    expect(result.stdout.indexOf("## 다음엔 이렇게 말하면 돼요")).toBeLessThan(result.stdout.indexOf("## 조금 더 탄탄하게 쓰면"));
+    expect(result.stdout).not.toContain("Constraint arrived after work had started");
+    expect(result.stdout).not.toContain("Friction");
+    expect(result.stdout).not.toContain("file_churn");
+    expect(result.stdout).not.toContain("heuristic-only");
+    expect(result.stdout).not.toContain("Main cause");
   });
 
   it("invokes codex analyzer with safe non-interactive flags for retro", async () => {
@@ -613,6 +637,7 @@ function coachReport(engine: "codex" | "claude"): PromptCoachReport {
     oneLineTake: "Bootstrap 요청은 짧았고, 뒤에 Release gate 계획이 붙으면서 한 세션 안에서 범위가 커졌습니다.",
     whatYouActuallyWrote: "처음에는 Bootstrap the CLI project라고 했고, 뒤에는 Release gate 계획을 붙였습니다.",
     whereItWentWrong: "Bootstrap이라는 말만으로는 어디까지 만들고 어디서 멈출지 충분히 고정되지 않았습니다.",
+    shortRewriteInYourVoice: "Bootstrap만 해줘. Release gate나 tag 작업은 빼고, 끝나기 전에 테스트만 확인해줘.",
     rewriteInYourVoice:
       "Bootstrap the CLI project. 다만 이번 세션에서는 CLI 골격만 만들고, Release gate나 tag 작업은 하지 마. 완료 전에는 pnpm test, pnpm typecheck, pnpm build를 실행해줘.",
     whyThisWorks: "원래 짧은 문장 구조를 유지하면서 범위와 검증 기준을 앞에 붙였기 때문입니다.",

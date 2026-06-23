@@ -60,4 +60,4 @@ No durable AGENTS.md rule suggested.
 ## Limitations
 
 - This is a synthetic example, not a real user transcript.
-- `re-prompt` uses heuristic reports by default and may use low confidence when the transcript does not show the final outcome.
+- `re-prompt retro` remains a detailed local forensic report and may use low confidence when the transcript does not show the final outcome.

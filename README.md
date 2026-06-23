@@ -1,8 +1,8 @@
 # re-prompt
 
-A local-first Codex session postmortem plugin and CLI.
+A Codex session prompt coach plugin and CLI.
 
-`re-prompt` is not a generic prompt improver. It reads saved local Codex transcripts, finds where a coding session became expensive or misleading, and turns that evidence into better next prompts, rescue prompts, and conservative AGENTS.md suggestions.
+`re-prompt` is not a prompt scorecard. It reads saved local Codex transcripts, looks at what you actually wrote, and coaches a clearer version in your own voice.
 
 ## Install
 
@@ -33,7 +33,7 @@ Fastest first look:
 /re-prompt-go
 ```
 
-Quick latest-session report:
+Quick latest-session coach:
 
 ```text
 /re-prompt-last
@@ -48,14 +48,14 @@ Best evaluation flow:
 
 Copy the `Session` value from `/re-prompt-go` into `/re-prompt-retro`.
 
-Optional CLI-enhanced reports:
+Underlying AI-assisted coach command:
 
 ```bash
-re-prompt retro <session-id-or-path> --engine codex
-re-prompt retro <session-id-or-path> --engine claude
+re-prompt coach <session-id-or-path> --engine codex
+re-prompt coach <session-id-or-path> --engine claude
 ```
 
-The default remains `--engine none`. `codex` and `claude` receive only a redacted evidence bundle, not raw transcripts.
+`codex` is the default coach engine. Codex and Claude receive only a redacted prompt-coach bundle, not raw transcripts.
 
 Preview conservative AGENTS.md suggestions from repeated recent evidence:
 
@@ -65,14 +65,13 @@ Preview conservative AGENTS.md suggestions from repeated recent evidence:
 
 ## What It Does
 
-`re-prompt` generates a retrospective that shows:
+`re-prompt` coaches the wording of a session prompt:
 
-- where the session went off track
-- which turns support that diagnosis
-- what concrete anchors mattered, such as files, commands, constraints, or failures
-- what you should have said up front
-- what rescue prompt would have helped mid-session
-- whether any repeated evidence is strong enough to suggest an AGENTS.md rule
+- what you actually wrote
+- where that wording became ambiguous, late, broad, or hard for an agent to execute
+- how to rewrite it in your own voice
+- one rescue line you could have used mid-session
+- when repeated evidence is strong enough to suggest an AGENTS.md rule
 
 ## Examples
 
@@ -82,7 +81,7 @@ Preview conservative AGENTS.md suggestions from repeated recent evidence:
 
 ## Dogfood / Feedback
 
-`v0.2.4` is ready for Codex plugin dogfood, but it is not published to npm yet.
+`v0.3.0` is ready for Codex plugin dogfood, but it is not published to npm yet.
 
 The fastest path is in the [Codex plugin install guide](docs/install-codex-plugin.md).
 
@@ -130,19 +129,20 @@ Underlying CLI commands:
 re-prompt doctor
 re-prompt scan --since 30d
 re-prompt go
+re-prompt coach
+re-prompt coach <session-id-or-path>
+re-prompt coach <session-id-or-path> --engine claude
 re-prompt last
 re-prompt retro <session-id-or-path>
-re-prompt retro <session-id-or-path> --engine codex
-re-prompt retro <session-id-or-path> --engine claude
 re-prompt inspect <session-id-or-path>
 re-prompt rules --since 30d
 ```
 
 ## Privacy
 
-`re-prompt` is local-first by default. It reads local Codex transcripts, redacts common secrets and local home paths before analysis, and uses deterministic heuristic reports unless you explicitly pass `--engine codex` or `--engine claude` to `retro` or `last`.
+`re-prompt` reads local Codex transcripts and redacts common secrets and local home paths before analysis. Plugin coach flows use Codex by default and send only a redacted prompt-coach bundle, not raw transcripts.
 
-Optional CLI analyzers receive only the redacted evidence bundle. They are not used for `scan`, `go`, or `rules`.
+`scan`, `go`, and `rules` stay local heuristic-only. `coach` can use Codex, Claude, or local fallback.
 
 AGENTS.md patches are dry-run only in this release.
 
@@ -150,7 +150,7 @@ AGENTS.md patches are dry-run only in this release.
 
 - Codex stored rollout logs only.
 - Best-effort parser because transcript schemas can change.
-- Heuristic suggestions are evidence-based, not guaranteed counterfactuals.
+- Coach suggestions are evidence-grounded, not guaranteed counterfactuals.
 
 ## Maintainer Install
 
@@ -171,7 +171,7 @@ pnpm pack
 mkdir /tmp/re-prompt-install-test
 cd /tmp/re-prompt-install-test
 npm init -y
-npm install /path/to/re-prompt-0.2.4.tgz
+npm install /path/to/re-prompt-0.3.0.tgz
 npx re-prompt --version
 npx re-prompt doctor
 ```

@@ -1,7 +1,7 @@
 {
   "name": "re-prompt",
-  "version": "0.2.4",
-  "description": "Local-first Codex session postmortem CLI.",
+  "version": "0.3.0",
+  "description": "AI-assisted Codex session prompt coach.",
   "type": "module",
   "bin": {
     "re-prompt": "./dist/cli.js"

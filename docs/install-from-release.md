@@ -5,7 +5,7 @@
 If you prefer the plugin-first flow, start with [install the Codex plugin](install-codex-plugin.md).
 
 ```bash
-npm install -g https://github.com/kio-vibe/re-prompt/releases/download/v0.2.4/re-prompt-0.2.4.tgz
+npm install -g https://github.com/kio-vibe/re-prompt/releases/download/v0.3.0/re-prompt-0.3.0.tgz
 re-prompt --version
 re-prompt go
 ```
@@ -13,7 +13,7 @@ re-prompt go
 Expected version:
 
 ```txt
-0.2.4
+0.3.0
 ```
 
 ## First run
@@ -24,12 +24,12 @@ Use the guided CLI command first:
 re-prompt go
 ```
 
-It checks local Codex session visibility, ranks recent high-friction sessions, and prints the exact `retro` command to run next.
+It checks local Codex session visibility, suggests a rough session candidate, and prints the exact coach command to run next.
 
-For a quick latest-session report:
+For a quick latest-session coach:
 
 ```bash
-re-prompt last
+re-prompt coach
 ```
 
 For the best evaluation flow:
@@ -37,19 +37,18 @@ For the best evaluation flow:
 ```bash
 re-prompt doctor
 re-prompt scan --since 30d
-re-prompt retro <session-id-or-path>
+re-prompt coach <session-id-or-path>
 ```
 
-`doctor`, `scan`, `go`, and `last` need local Codex stored sessions. They are most useful on a machine where Codex CLI has already been used.
+`doctor`, `scan`, `go`, and `coach` need local Codex stored sessions. They are most useful on a machine where Codex CLI has already been used.
 
-Optional CLI-enhanced reports are available for explicit session analysis:
+Optional Claude coach analysis is available for explicit session analysis:
 
 ```bash
-re-prompt retro <session-id-or-path> --engine codex
-re-prompt retro <session-id-or-path> --engine claude
+re-prompt coach <session-id-or-path> --engine claude
 ```
 
-The default report engine is still local heuristic mode. The Codex plugin exposes the same flows through `/re-prompt-go`, `/re-prompt-last`, and `/re-prompt-retro`.
+The default coach engine is Codex. The Codex plugin exposes the same flows through `/re-prompt-go`, `/re-prompt-last`, and `/re-prompt-retro`.
 
 ## Uninstall
 

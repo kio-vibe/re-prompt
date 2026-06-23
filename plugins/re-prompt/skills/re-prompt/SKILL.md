@@ -29,7 +29,7 @@ metadata:
 
 # re-prompt
 
-Use the local `re-prompt` CLI to review stored Codex sessions and turn session friction into better next prompts.
+Use the local `re-prompt` CLI to coach stored Codex session prompts and rewrite them in the user's own voice.
 
 ## Product Boundary
 
@@ -59,14 +59,14 @@ re-prompt go
 For the latest analyzable session:
 
 ```bash
-re-prompt last
+re-prompt coach --engine codex --language auto
 ```
 
 For the best evaluation flow:
 
 ```bash
 re-prompt scan --since 30d
-re-prompt retro <session-id-or-path>
+re-prompt coach <session-id-or-path> --engine codex --language auto
 ```
 
 For durable AGENTS.md suggestions:
@@ -79,16 +79,14 @@ re-prompt rules --since 30d
 
 `scan`, `go`, and `rules` are heuristic-only.
 
-Only `retro` and `last` support external CLI analyzers:
+Detailed forensic reports are still available:
 
 ```bash
-re-prompt retro <session-id-or-path> --engine codex
-re-prompt retro <session-id-or-path> --engine claude
-re-prompt last --engine codex
-re-prompt last --engine claude
+re-prompt retro <session-id-or-path>
+re-prompt last
 ```
 
-Use these only when the user explicitly asks for Codex or Claude enhanced analysis. These commands send a redacted EvidenceBundle to the selected CLI, not raw transcripts.
+Use `coach --engine claude` only when the user explicitly asks for Claude. Coach mode sends a redacted prompt-coach bundle to the selected CLI, not raw transcripts.
 
 ## Response Style
 
@@ -100,16 +98,11 @@ When summarizing a report for the user, include:
 - Start with the result, not the process.
 - Do not paste raw CLI output verbatim; explain it in beginner-friendly wording.
 - selected session id and confidence
-- main friction point
-- strongest turn evidence
-- best copy-pasteable next prompt
-- whether the report used heuristic mode, Codex, Claude, or fallback
+- what the user actually wrote
+- where that wording got in the way
+- the rewrite in the user's own voice
+- whether the coach used Codex, Claude, or fallback
 
-Use this glossary for `re-prompt go` output:
-
-- `Friction` = "꼬였을 가능성" in Korean, "review priority" in English.
-- `Turns` = "대화/작업 횟수" in Korean, "conversation length" in English.
-- `file_churn` = "파일을 여러 번 고치며 왕복함" in Korean, "repeated file edits" in English.
-- `heuristic-only` = "외부 AI 호출 없이 로컬 규칙으로 분석" in Korean, "local rules only, no external AI call" in English.
+Avoid internal scoring jargon such as `Friction`, `file_churn`, `heuristic-only`, or `Main cause` in user-facing summaries.
 
 Keep the summary short and practical.

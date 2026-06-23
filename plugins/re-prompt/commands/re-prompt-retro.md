@@ -4,7 +4,7 @@ description: Analyze a specific Codex session by id or transcript path with re-p
 
 # re-prompt Retro
 
-Analyze a specific session. Use this when the user has a session id from `/re-prompt-go` or `re-prompt scan`.
+Coach a specific session prompt. Use this when the user has a session id from `/re-prompt-go` or `re-prompt scan`.
 
 ## Preflight
 
@@ -28,29 +28,27 @@ Then ask the user which `Session` value to analyze.
 
 ## Command
 
-Default local heuristic report:
+Default prompt coach:
+
+```bash
+re-prompt coach <session-id-or-path> --engine codex --language auto
+```
+
+Detailed forensic report, only when the user explicitly asks for it:
 
 ```bash
 re-prompt retro <session-id-or-path>
 ```
 
-Optional CLI-enhanced reports:
-
-```bash
-re-prompt retro <session-id-or-path> --engine codex
-re-prompt retro <session-id-or-path> --engine claude
-```
-
-Use `--engine codex` or `--engine claude` only when the user explicitly asks for it.
+Use `re-prompt coach <session-id-or-path> --engine claude --language auto` only when the user explicitly asks for Claude.
 
 ## Result
 
-Summarize:
+Summarize the coach output:
 
-- where the session got expensive
-- the cited turn evidence
-- the better initial prompt
-- the most relevant rescue prompt
-- whether any AGENTS.md rule was suggested
+- what the user actually wrote
+- where that wording was hard for the agent to execute
+- the rewrite in the user's own voice
+- the one rescue line they could use next time
 
 Do not paste raw transcript content.

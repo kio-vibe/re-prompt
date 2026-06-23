@@ -14,7 +14,7 @@ metadata:
 
 # re-prompt-last
 
-Analyze the latest analyzable local Codex session.
+Coach the latest analyzable local Codex session prompt.
 
 ## Product Boundary
 
@@ -32,13 +32,13 @@ re-prompt --version
 
 If missing, direct the user to `/re-prompt-install`. Do not install automatically.
 
-Default local heuristic report:
+Default prompt coach:
 
 ```bash
-re-prompt last
+re-prompt coach --engine codex --language auto
 ```
 
-Only use `--engine codex` or `--engine claude` when the user explicitly asks for enhanced analysis.
+Only use `--engine claude` when the user explicitly asks for Claude. Use `re-prompt last` only when the user asks for the detailed forensic report.
 
 ## Response Style
 
@@ -48,4 +48,4 @@ Do not announce that you are using the skill unless the user asks. Start with th
 
 Do not paste raw CLI output verbatim. Summarize it in beginner-friendly wording.
 
-Summarize the selected session, confidence, main friction point, strongest evidence, and best next prompt. Keep it short and practical.
+Summarize what the user actually wrote, where that wording was hard for the agent to execute, the rewrite in the user's own voice, and the one rescue line they can use next time. Keep it short and practical.

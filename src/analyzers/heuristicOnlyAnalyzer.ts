@@ -3,6 +3,7 @@ import type { EvidenceBundle, EvidenceRef, Finding, RetroReport, RescuePrompt, S
 import { frictionLabel } from "../core/scoring/frictionScore.js";
 import { truncate } from "../core/text.js";
 import { isActionableFailedCommand, isImplementationPlanPrompt } from "../core/commands.js";
+import { redactValue } from "../core/privacy/redact.js";
 
 export class HeuristicOnlyAnalyzer implements Analyzer {
   public async analyze(bundle: EvidenceBundle, _options: AnalyzerOptions): Promise<RetroReport> {
@@ -15,7 +16,7 @@ export class HeuristicOnlyAnalyzer implements Analyzer {
       .map((signal) => signalToRescuePrompt(signal, bundle));
     const rules = buildRules(bundle);
 
-    return {
+    const report: RetroReport = {
       schemaVersion: 1,
       session: {
         source: "codex",
@@ -66,6 +67,7 @@ export class HeuristicOnlyAnalyzer implements Analyzer {
         "Low-confidence sections intentionally avoid inferring goals that are not visible in the transcript."
       ]
     };
+    return redactValue(report).value;
   }
 }
 

@@ -1,14 +1,14 @@
 # Known Limitations
 
-`re-prompt v0.2.4` is an early dogfood release. It is useful for testing report quality, but it is intentionally narrow.
+`re-prompt v0.3.0` is an early dogfood release. It is useful for testing prompt coaching quality, but it is intentionally narrow.
 
 ## Current scope
 
 - Codex stored rollout logs only
 - local-first
-- heuristic-only by default
+- Codex coach by default in plugin flows
 - Codex plugin wrapper for first-run UX
-- optional Codex/Claude CLI analyzers for `retro` and `last`
+- optional Claude CLI analyzer for `coach`
 - no telemetry
 - no npm package yet
 - explicit CLI install only; the plugin does not auto-install global packages
@@ -26,7 +26,7 @@
 
 ## Accuracy limits
 
-Reports are evidence-grounded suggestions, not guaranteed counterfactuals.
+Coach outputs are evidence-grounded suggestions, not guaranteed counterfactuals.
 
 `re-prompt` can be wrong when:
 
@@ -37,4 +37,4 @@ Reports are evidence-grounded suggestions, not guaranteed counterfactuals.
 - the user corrected direction without using obvious correction language
 - a session was too large or malformed to parse fully
 
-Good dogfood feedback points out where the report overclaimed, missed evidence, or produced advice that was technically true but not useful.
+Good dogfood feedback points out where the coach missed the user's wording, sounded too generic, overclaimed, or produced advice that was technically true but not useful.

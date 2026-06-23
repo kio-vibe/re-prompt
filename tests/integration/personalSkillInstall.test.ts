@@ -56,7 +56,7 @@ describe("personal skill installer", () => {
       "utf8"
     );
     expect(goSkill).toContain("re-prompt go --next-style plugin --language auto");
-    expect(goSkill).toContain("Friction");
-    expect(goSkill).toContain("꼬였을 가능성");
+    expect(goSkill).toContain("only rough local triage");
+    expect(goSkill).toContain("Avoid internal scoring jargon");
   });
 });

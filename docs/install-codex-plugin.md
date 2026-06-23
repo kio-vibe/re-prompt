@@ -77,14 +77,14 @@ Preview durable AGENTS.md suggestions:
 Optional CLI-enhanced analysis is still explicit:
 
 ```bash
-re-prompt retro <session-id-or-path> --engine codex
-re-prompt retro <session-id-or-path> --engine claude
+re-prompt coach <session-id-or-path> --engine codex
+re-prompt coach <session-id-or-path> --engine claude
 ```
 
-`scan`, `go`, and `rules` remain heuristic-only.
+`scan`, `go`, and `rules` remain heuristic-only. Use `re-prompt retro <session-id-or-path>` only when you want the detailed forensic report.
 
 ## Privacy
 
 Do not paste raw Codex rollout JSONL, private code, secrets, or unredacted command output into issues or chat.
 
-The plugin runs local `re-prompt` commands and summarizes the generated report. Optional `--engine codex` and `--engine claude` analyzer modes receive a redacted EvidenceBundle, not raw transcripts.
+The plugin runs local `re-prompt` commands and summarizes the generated coach output. `coach --engine codex` and `coach --engine claude` receive a redacted PromptCoachBundle, not raw transcripts.

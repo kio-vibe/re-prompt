@@ -77,6 +77,22 @@ describe("heuristic report", () => {
     expect(report.betterInitialPrompt.prompt).toContain("README.md");
   });
 
+  it("redacts local home paths even when the analyzer receives an unredacted bundle", async () => {
+    const bundle = minimalFileChurnBundle();
+    const localPath = "/Users/alice/project/src/cli.ts";
+    bundle.signals[0]!.evidence = [{ turnIndex: 1, eventKind: "file_change", path: localPath }];
+    bundle.changedFiles[0]!.path = localPath;
+    bundle.anchors[0]!.value = localPath;
+    bundle.concreteFacts.changedFiles = [localPath];
+    bundle.concreteFacts.repeatedFiles = [localPath];
+
+    const report = await new HeuristicOnlyAnalyzer().analyze(bundle, { engine: "none" });
+    const rendered = JSON.stringify(report);
+
+    expect(rendered).not.toContain("/Users/alice");
+    expect(rendered).toContain("~/project/src/cli.ts");
+  });
+
   it("marks sessions with follow-up implementation plans as multi-task instead of a single first-turn goal", async () => {
     const bundle = await bundleFromFixture("plan-followups-not-late-constraint.jsonl");
     const report = await new HeuristicOnlyAnalyzer().analyze(bundle, { engine: "none" });

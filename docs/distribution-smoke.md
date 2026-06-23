@@ -36,7 +36,7 @@ node dist/cli.js doctor
 node dist/cli.js scan --since 30d
 ```
 
-`doctor`, `scan`, and `last` need local Codex stored sessions under `~/.codex/sessions`. On a machine without Codex sessions, `doctor` should still explain what is missing.
+`doctor`, `scan`, and `coach` need local Codex stored sessions under `~/.codex/sessions`. On a machine without Codex sessions, `doctor` should still explain what is missing.
 
 ## Tarball Install
 
@@ -45,20 +45,20 @@ pnpm pack
 mkdir /tmp/re-prompt-install-test
 cd /tmp/re-prompt-install-test
 npm init -y
-npm install /path/to/re-prompt-0.2.4.tgz
+npm install /path/to/re-prompt-0.3.0.tgz
 npx re-prompt --version
 npx re-prompt --help
 npx re-prompt go
 npx re-prompt doctor
 npx re-prompt scan --since 30d
-npx re-prompt last
+npx re-prompt coach
 ```
 
 Optional analyzer smoke, only on machines with the relevant CLI configured:
 
 ```bash
-npx re-prompt retro <session-id-or-path> --engine codex
-npx re-prompt retro <session-id-or-path> --engine claude
+npx re-prompt coach <session-id-or-path> --engine codex
+npx re-prompt coach <session-id-or-path> --engine claude
 ```
 
 You can run the same flow from the repo:
@@ -95,5 +95,5 @@ It should not include local Codex transcripts, dogfood reports, temp tarballs, o
 
 - `doctor` reports missing sessions: Codex CLI has not created stored sessions on this machine yet.
 - `scan --since 30d` prints no useful rows: there may be no recent analyzable Codex sessions.
-- `last` fails with no analyzable sessions: acceptable on a fresh machine, but not on a maintainer machine with real Codex history.
+- `coach --engine none` fails with no analyzable sessions: acceptable on a fresh machine, but not on a maintainer machine with real Codex history.
 - package contents include unexpected files: fix the `files` allowlist in `package.json` before npm publish.

@@ -60,11 +60,11 @@ These commands need local Codex stored sessions under your Codex home. They are 
 Optional analyzer comparison:
 
 ```bash
-re-prompt retro <session-id-or-path> --engine codex
-re-prompt retro <session-id-or-path> --engine claude
+re-prompt coach <session-id-or-path> --engine codex
+re-prompt coach <session-id-or-path> --engine claude
 ```
 
-These engines receive only a redacted evidence bundle. `scan`, `go`, and `rules` remain heuristic-only.
+These engines receive only a redacted prompt-coach bundle. `scan`, `go`, and `rules` remain heuristic-only.
 
 Preview conservative AGENTS.md suggestions from repeated evidence:
 

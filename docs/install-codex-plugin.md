@@ -15,14 +15,14 @@ It still uses the local `re-prompt` CLI under the hood.
 Plugin skill install and global CLI install are separate. The plugin calls the `re-prompt` executable on your machine; installing the plugin does not install or update that executable.
 
 ```bash
-npm install -g https://github.com/kio-vibe/re-prompt/releases/download/v0.4.1/re-prompt-0.4.1.tgz
+npm install -g https://github.com/kio-vibe/re-prompt/releases/download/v0.4.2/re-prompt-0.4.2.tgz
 re-prompt --version
 ```
 
 Expected version:
 
 ```txt
-0.4.1
+0.4.2
 ```
 
 ## Install The Plugin

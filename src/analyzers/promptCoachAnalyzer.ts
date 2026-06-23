@@ -147,6 +147,8 @@ export function buildPromptCoachPrompt(
     "- Do not use internal terms like Friction, file_churn, heuristic-only, or Main cause in user-facing fields.",
     "- Do not write generic advice like 'be more specific' or 'provide more context'.",
     "- Keep the rewrite copy-pasteable.",
+    "- Fill shortRewriteInYourVoice with a 1-3 line version the user could paste immediately.",
+    "- Fill rewriteInYourVoice with the fuller version that adds constraints, scope, and verification checks.",
     "- Preserve the user's language. If outputLanguage is ko, write Korean.",
     "- If the user's original wording is rough, keep that natural shape while making it clearer.",
     "",
@@ -188,8 +190,9 @@ export function buildFallbackPromptCoachReport(
         : `Your first request started roughly like this: "${truncate(original, 260)}"`,
     whereItWentWrong:
       language === "ko"
-        ? `처음 문장에 범위, 유지해야 할 조건, 완료 전 확인 명령이 충분히 고정되지 않았습니다.${firstSignal ? ` 특히 ${firstSignal.title} 신호가 보였습니다.` : ""}`
-        : `The wording did not lock scope, constraints, and verification up front.${firstSignal ? ` The main signal was ${firstSignal.title}.` : ""}`,
+        ? `처음 문장에 범위, 유지해야 할 조건, 완료 전 확인 명령이 충분히 고정되지 않았습니다.${firstSignal ? ` 특히 ${coachSignalLabel(firstSignal.kind, language)} 신호가 보였습니다.` : ""}`
+        : `The wording did not lock scope, constraints, and verification up front.${firstSignal ? ` The main signal was ${coachSignalLabel(firstSignal.kind, language)}.` : ""}`,
+    shortRewriteInYourVoice: buildFallbackShortRewrite(language, original, tests, constraint),
     rewriteInYourVoice: buildFallbackRewrite(language, original, changedFiles, tests, constraint),
     whyThisWorks:
       language === "ko"
@@ -220,6 +223,7 @@ export function lintPromptCoachReport(report: PromptCoachReport, bundle: PromptC
     report.oneLineTake,
     report.whatYouActuallyWrote,
     report.whereItWentWrong,
+    report.shortRewriteInYourVoice ?? "",
     report.rewriteInYourVoice,
     report.whyThisWorks,
     report.rescueLine
@@ -235,6 +239,9 @@ export function lintPromptCoachReport(report: PromptCoachReport, bundle: PromptC
   }
   if (report.rewriteInYourVoice.trim().length < 24) {
     issues.push("rewrite_too_short");
+  }
+  if (report.shortRewriteInYourVoice && report.shortRewriteInYourVoice.trim().length < 12) {
+    issues.push("short_rewrite_too_short");
   }
   return issues;
 }
@@ -277,6 +284,39 @@ function buildFallbackRewrite(
     tests.length > 0 ? `- Before finishing, run ${tests.map(formatCode).join(", ")}.` : "- Before finishing, run the relevant test/typecheck/build command.",
     "- If the scope grows, stop and confirm before continuing."
   ].join("\n");
+}
+
+function buildFallbackShortRewrite(
+  language: "en" | "ko",
+  original: string,
+  tests: string[],
+  constraint: string | undefined
+): string {
+  const base = truncate(original, 180);
+  if (language === "ko") {
+    const checks = tests.length > 0 ? `${tests.map(formatCode).join(", ")}까지 확인해줘` : "관련 테스트까지 확인해줘";
+    const guard = constraint ? `중간에 나온 이 조건도 처음부터 지켜줘: "${truncate(constraint, 120)}"` : "기존 동작을 바꾸면 먼저 물어봐줘";
+    return `${base}\n\n다만 범위 먼저 좁히고, ${guard}. 완료 전에는 ${checks}.`;
+  }
+
+  const checks = tests.length > 0 ? `run ${tests.map(formatCode).join(", ")}` : "run the relevant checks";
+  const guard = constraint ? `preserve this constraint from the start: "${truncate(constraint, 120)}"` : "ask before changing existing behavior";
+  return `${base}\n\nKeep the scope tight, ${guard}, and before finishing ${checks}.`;
+}
+
+function coachSignalLabel(kind: string, language: "en" | "ko"): string {
+  const labels: Record<string, { en: string; ko: string }> = {
+    user_correction: { en: "user correction", ko: "사용자가 방향을 다시 잡아준 흔적" },
+    late_constraint: { en: "late constraint", ko: "중요한 조건이 뒤늦게 나온 흔적" },
+    repeated_failure: { en: "repeated failure", ko: "같은 실패가 반복된 흔적" },
+    verification_gap: { en: "verification gap", ko: "마지막 확인이 부족한 흔적" },
+    scope_drift: { en: "scope drift", ko: "범위가 넓어진 흔적" },
+    file_churn: { en: "repeated file edits", ko: "파일을 여러 번 고치며 왕복한 흔적" },
+    premature_edit: { en: "premature edit", ko: "확인 전에 편집이 먼저 들어간 흔적" },
+    environment_gap: { en: "environment gap", ko: "환경 조건이 빠진 흔적" },
+    low_friction: { en: "low friction", ko: "가벼운 점검 신호" }
+  };
+  return labels[kind]?.[language] ?? kind.replaceAll("_", " ");
 }
 
 function hasUserLanguageAnchor(text: string, bundle: PromptCoachBundle): boolean {

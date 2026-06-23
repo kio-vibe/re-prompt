@@ -78,7 +78,7 @@ export function createProgram(): Command {
   const program = new Command()
     .name("re-prompt")
     .description("A local-first Codex session prompt coach.")
-    .version("0.4.1")
+    .version("0.4.2")
     .action(async () => {
       await candidatesCommand({
         since: "30d",

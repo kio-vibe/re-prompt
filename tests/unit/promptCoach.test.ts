@@ -6,6 +6,7 @@ import { normalizeCodexSession } from "../../src/sources/codex/normalizeCodexSes
 import { parseCodexJsonl } from "../../src/sources/codex/parseCodexJsonl.js";
 import { parsePromptCoachReport } from "../../src/analyzers/coachSchema.js";
 import { buildFallbackPromptCoachReport, lintPromptCoachReport } from "../../src/analyzers/promptCoachAnalyzer.js";
+import { renderPromptCoachReport } from "../../src/renderers/promptCoachRenderer.js";
 import { readFixture } from "../helpers.js";
 import type { NormalizedSession, PromptCoachReport } from "../../src/core/types.js";
 
@@ -87,6 +88,28 @@ describe("prompt coach", () => {
     expect(lintPromptCoachReport(generic, bundle)).toContain("generic_advice");
   });
 
+  it("renders a short rewrite before the fuller coach rewrite", () => {
+    const report = parsePromptCoachReport({
+      ...validCoachReport(),
+      shortRewriteInYourVoice: "Bootstrap만 해줘. release gate는 빼고, 끝나기 전에 테스트만 확인해줘."
+    });
+
+    const rendered = renderPromptCoachReport(report);
+
+    expect(rendered).toContain("## 다음엔 이렇게 말하면 돼요");
+    expect(rendered).toContain("## 조금 더 탄탄하게 쓰면");
+    expect(rendered.indexOf("Bootstrap만 해줘")).toBeLessThan(rendered.indexOf("Bootstrap the CLI project. 다만"));
+    expect(rendered).not.toContain("## Rewritten in your voice");
+  });
+
+  it("renders old coach reports without short rewrites by falling back to the full rewrite", () => {
+    const report = parsePromptCoachReport(validCoachReport());
+    const rendered = renderPromptCoachReport(report);
+
+    expect(rendered).toContain("## 다음엔 이렇게 말하면 돼요");
+    expect(rendered).toContain("Bootstrap the CLI project. 다만 이번 세션에서는 CLI 골격만 만들고");
+  });
+
   it("builds a low-confidence fallback coach report", async () => {
     const bundle = await coachBundleFromFixture("plan-followups-not-late-constraint.jsonl");
     const report = buildFallbackPromptCoachReport(bundle, {
@@ -99,6 +122,7 @@ describe("prompt coach", () => {
     expect(report.confidence).toBe("low");
     expect(report.analysis).toMatchObject({ requestedEngine: "codex", usedEngine: "none", fallback: true });
     expect(report.analysis?.fallbackReason).toContain("codex CLI missing");
+    expect(report.shortRewriteInYourVoice).toContain("범위 먼저 좁히고");
     expect(report.rewriteInYourVoice).toContain("Bootstrap the CLI project");
   });
 });

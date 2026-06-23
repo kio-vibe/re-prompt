@@ -74,7 +74,7 @@ describe("CLI commands", () => {
     });
 
     expect(result.exitCode).toBe(0);
-    expect(result.stdout).toBe("0.3.1");
+    expect(result.stdout).toBe("0.4.0");
   });
 
   it("prints doctor and scan output for a temp CODEX_HOME", async () => {
@@ -88,6 +88,45 @@ describe("CLI commands", () => {
     expect(scan.exitCode).toBe(0);
     expect(scan.stdout).toContain("Friction");
     expect(scan.stdout).toContain("late_constraint");
+  });
+
+  it("prints candidate sessions from the default no-args entry point", async () => {
+    const { codexHome } = await makeCodexHomeWithSession("late-constraint.jsonl");
+
+    const result = await runCliWithEnv([], {
+      CODEX_HOME: codexHome,
+      LANG: "ko_KR.UTF-8"
+    });
+
+    expect(result.exitCode).toBe(0);
+    expect(result.stdout).toContain("먼저 볼 후보 3개");
+    expect(result.stdout).toContain("Refactor the auth middleware.");
+    expect(result.stdout).toContain("왜 볼 만한가:");
+    expect(result.stdout).toContain("문제점 한 줄:");
+    expect(result.stdout).toContain("분석할 번호만 말해줘");
+    expect(result.stdout).not.toContain("Friction");
+    expect(result.stdout).not.toContain("heuristic-only");
+  });
+
+  it("prints stable candidate JSON without assistant or command output", async () => {
+    const { codexHome } = await makeCodexHomeWithSession("late-constraint.jsonl");
+
+    const result = await runCli(["candidates", "--codex-home", codexHome, "--top", "3", "--format", "json", "--language", "en"]);
+
+    expect(result.exitCode).toBe(0);
+    const rows = JSON.parse(result.stdout) as Array<Record<string, unknown>>;
+    expect(rows).toHaveLength(1);
+    expect(rows[0]).toMatchObject({
+      index: 1,
+      sessionId: "sess-late",
+      turnCount: 2
+    });
+    expect(rows[0]?.chatSummary).toContain("Refactor the auth middleware.");
+    expect(rows[0]?.shortProblem).toContain("condition");
+    expect(rows[0]).not.toHaveProperty("path");
+    expect(rows[0]).not.toHaveProperty("score");
+    expect(result.stdout).not.toContain("I changed the middleware");
+    expect(result.stdout).not.toContain("return json");
   });
 
   it("guides a first run with beginner-friendly English summary and next commands", async () => {
@@ -146,9 +185,11 @@ describe("CLI commands", () => {
 
     expect(result.exitCode).toBe(0);
     expect(result.stdout).toContain("다음에 해볼 것:");
-    expect(result.stdout).toContain("/re-prompt-retro sess-late");
-    expect(result.stdout).toContain("/re-prompt-last");
-    expect(result.stdout).toContain("/re-prompt-rules");
+    expect(result.stdout).toContain("/re-prompt 입력 후 1번 선택");
+    expect(result.stdout).toContain("sess-late");
+    expect(result.stdout).not.toContain("/re-prompt-retro");
+    expect(result.stdout).not.toContain("/re-prompt-last");
+    expect(result.stdout).not.toContain("/re-prompt-rules");
     expect(result.stdout).not.toContain("re-prompt coach sess-late");
   });
 
@@ -172,56 +213,20 @@ describe("CLI commands", () => {
     expect(result.stderr).toContain("Use cli or plugin");
   });
 
-  it("keeps plugin command guidance plugin-first and language-aware", async () => {
-    const goCommand = await readFile("plugins/re-prompt/commands/re-prompt-go.md", "utf8");
-    const installCommand = await readFile("plugins/re-prompt/commands/re-prompt-install.md", "utf8");
+  it("keeps the plugin surface centered on one re-prompt skill", async () => {
     const skill = await readFile("plugins/re-prompt/skills/re-prompt/SKILL.md", "utf8");
-    const slashSkillNames = [
-      "re-prompt",
-      "re-prompt-go",
-      "re-prompt-install",
-      "re-prompt-last",
-      "re-prompt-retro",
-      "re-prompt-rules"
-    ];
 
-    expect(goCommand).toContain("re-prompt go --next-style plugin --language auto");
-    expect(goCommand).toContain("/re-prompt-retro <session-id>");
-    expect(goCommand).toContain("Do not paste the raw CLI output back verbatim");
-    expect(goCommand).toContain("rough top candidate");
-    expect(goCommand).toContain("only local triage");
-    expect(installCommand).toContain("command -v re-prompt");
-    expect(installCommand).toContain("Only inspect repository docs or plugin files if one of these checks fails");
-    expect(installCommand).toContain("0.3.1");
-    expect(installCommand).toContain("re-prompt-0.3.1.tgz");
     expect(skill).toContain("Respond in the user's language");
     expect(skill).toContain("Do not paste raw CLI output verbatim");
-    expect(skill).toContain("rewrite them in the user's own voice");
-    expect(skill).toContain("Avoid internal scoring jargon");
+    expect(skill).toContain("in the user's own voice");
     expect(skill).toContain("Do not ask the user to paste raw rollout JSONL");
-
-    for (const skillName of slashSkillNames) {
-      const slashSkill = await readFile(`plugins/re-prompt/skills/${skillName}/SKILL.md`, "utf8");
-      expect(slashSkill).toContain("surrounding conversation language");
-      expect(slashSkill).toContain("Do not announce that you are using the skill");
-      expect(slashSkill).toContain("Start with the result, not the process");
-      expect(slashSkill).toContain("Do not paste raw CLI output verbatim");
-      expect(slashSkill).toContain("Do not ask the user to paste raw rollout JSONL");
-    }
-
-    const goSkill = await readFile("plugins/re-prompt/skills/re-prompt-go/SKILL.md", "utf8");
-    expect(goSkill).toContain("the first rough candidate worth inspecting");
-    expect(goSkill).toContain("only a candidate, not a final judgment");
-    expect(goSkill).toContain("/re-prompt-retro <session-id>");
-
-    const retroSkill = await readFile("plugins/re-prompt/skills/re-prompt-retro/SKILL.md", "utf8");
-    expect(retroSkill).toContain("re-prompt coach <session-id-or-path> --engine codex --language auto");
-    expect(retroSkill).toContain("the rewrite in the user's own voice");
-
-    const retroCommand = await readFile("plugins/re-prompt/commands/re-prompt-retro.md", "utf8");
-    const lastCommand = await readFile("plugins/re-prompt/commands/re-prompt-last.md", "utf8");
-    expect(retroCommand).toContain("re-prompt coach <session-id-or-path> --engine codex --language auto");
-    expect(lastCommand).toContain("re-prompt coach --engine codex --language auto");
+    expect(skill).toContain("re-prompt candidates --format json --top 3 --language auto");
+    expect(skill).toContain("ask the user to choose only a number");
+    expect(skill).toContain("map that number to the matching `sessionId`");
+    expect(skill).toContain("re-prompt coach <session-id> --engine codex --language auto");
+    expect(skill).toContain("After coaching one candidate, suggest another candidate");
+    expect(skill).toContain("Do not show internal fields such as scores");
+    expect(skill).toContain("v0.4.0/re-prompt-0.4.0.tgz");
   });
 
   it("go handles an empty Codex home without failing", async () => {

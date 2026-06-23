@@ -1,6 +1,6 @@
 {
   "name": "re-prompt",
-  "version": "0.3.1",
+  "version": "0.4.0",
   "description": "Run re-prompt prompt coaching from inside Codex.",
   "author": {
     "name": "kio-vibe",
@@ -31,9 +31,9 @@
     "privacyPolicyURL": "https://github.com/kio-vibe/re-prompt/blob/main/docs/privacy-for-dogfood.md",
     "termsOfServiceURL": "https://github.com/kio-vibe/re-prompt",
     "defaultPrompt": [
-      "Use re-prompt to coach my latest Codex session prompt",
-      "Find my highest-friction Codex session",
-      "Preview AGENTS.md rules from recent sessions"
+      "Use re-prompt to pick a Codex session to coach",
+      "Show me recent Codex session candidates",
+      "Rewrite my session prompt in my own voice"
     ],
     "brandColor": "#2563EB"
   }

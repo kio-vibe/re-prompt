@@ -1,13 +1,13 @@
 # Known Limitations
 
-`re-prompt v0.3.1` is an early dogfood release. It is useful for testing prompt coaching quality, but it is intentionally narrow.
+`re-prompt v0.4.0` is an early dogfood release. It is useful for testing prompt coaching quality, but it is intentionally narrow.
 
 ## Current scope
 
 - Codex stored rollout logs only
 - local-first
 - Codex coach by default in plugin flows
-- Codex plugin wrapper for first-run UX
+- single `/re-prompt` Codex plugin wrapper for first-run UX
 - optional Claude CLI analyzer for `coach`
 - no telemetry
 - no npm package yet

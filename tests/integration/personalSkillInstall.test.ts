@@ -1,4 +1,4 @@
-import { mkdtemp, readFile, stat } from "node:fs/promises";
+import { mkdir, mkdtemp, readFile, stat, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
 import { execa } from "execa";
@@ -11,8 +11,7 @@ async function runInstaller(codexHome: string, args: string[] = []) {
   });
 }
 
-const personalSkillNames = [
-  "re-prompt",
+const legacySkillNames = [
   "re-prompt-go",
   "re-prompt-install",
   "re-prompt-last",
@@ -20,43 +19,61 @@ const personalSkillNames = [
   "re-prompt-rules"
 ];
 
+async function writeLegacySkill(codexHome: string, skillName: string): Promise<void> {
+  const dir = join(codexHome, "skills", skillName);
+  await mkdir(dir, { recursive: true });
+  await writeFile(
+    join(dir, "SKILL.md"),
+    `---
+name: ${skillName}
+description: legacy re-prompt shim
+---
+
+# ${skillName}
+
+Do not ask the user to paste raw rollout JSONL.
+This legacy re-prompt shim is safe to remove.
+`,
+    "utf8"
+  );
+}
+
 describe("personal skill installer", () => {
-  it("prints all target personal skill paths without writing files in dry-run mode", async () => {
+  it("prints the single target skill and legacy cleanup plan without writing files in dry-run mode", async () => {
     const codexHome = await mkdtemp(join(tmpdir(), "re-prompt-skill-dry-run-"));
+    await writeLegacySkill(codexHome, "re-prompt-go");
 
     const result = await runInstaller(codexHome, ["--dry-run"]);
 
     expect(result.exitCode).toBe(0);
     expect(result.stdout).toContain("Dry run: no files written.");
-    expect(result.stdout).toContain("/re-prompt-go");
-    for (const skillName of personalSkillNames) {
-      const target = join(codexHome, "skills", skillName, "SKILL.md");
-      expect(result.stdout).toContain(`Target: ${target}`);
-      await expect(stat(target)).rejects.toThrow();
-    }
+    expect(result.stdout).toContain(`Target: ${join(codexHome, "skills", "re-prompt", "SKILL.md")}`);
+    expect(result.stdout).toContain("Cleanup: remove legacy re-prompt-owned skill");
+    expect(result.stdout).toContain("type /re-prompt");
+    await expect(stat(join(codexHome, "skills", "re-prompt", "SKILL.md"))).rejects.toThrow();
+    await expect(stat(join(codexHome, "skills", "re-prompt-go", "SKILL.md"))).resolves.toBeTruthy();
   });
 
-  it("installs command-specific re-prompt skill shims into CODEX_HOME personal skills", async () => {
+  it("installs only the base re-prompt skill and removes confirmed legacy shims", async () => {
     const codexHome = await mkdtemp(join(tmpdir(), "re-prompt-skill-install-"));
+    for (const skillName of legacySkillNames) {
+      await writeLegacySkill(codexHome, skillName);
+    }
 
     const result = await runInstaller(codexHome);
 
     expect(result.exitCode).toBe(0);
-    expect(result.stdout).toContain("Installed 6 personal skill shims.");
-    for (const skillName of personalSkillNames) {
-      const target = join(codexHome, "skills", skillName, "SKILL.md");
-      const installed = await readFile(target, "utf8");
-      expect(installed).toContain(`name: ${skillName}`);
-      expect(installed).toContain("description:");
-      expect(installed).toContain("Do not ask the user to paste raw rollout JSONL");
-    }
+    expect(result.stdout).toContain("Installed re-prompt personal skill.");
+    expect(result.stdout).toContain("Removed 5 legacy command-specific skill shim(s).");
 
-    const goSkill = await readFile(
-      join(codexHome, "skills", "re-prompt-go", "SKILL.md"),
-      "utf8"
-    );
-    expect(goSkill).toContain("re-prompt go --next-style plugin --language auto");
-    expect(goSkill).toContain("only rough local triage");
-    expect(goSkill).toContain("Avoid internal scoring jargon");
+    const installed = await readFile(join(codexHome, "skills", "re-prompt", "SKILL.md"), "utf8");
+    expect(installed).toContain("name: re-prompt");
+    expect(installed).toContain("re-prompt candidates --format json --top 3 --language auto");
+    expect(installed).toContain("map that number to the matching `sessionId`");
+    expect(installed).toContain("Do not ask the user to paste raw rollout JSONL");
+
+    for (const skillName of legacySkillNames) {
+      await expect(stat(join(codexHome, "skills", skillName, "SKILL.md"))).rejects.toThrow();
+    }
   });
 });

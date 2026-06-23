@@ -2,7 +2,7 @@
 
 This guide is for early testers trying `re-prompt` against their own local Codex sessions.
 
-The goal is not to collect raw transcripts. The goal is to learn whether plugin-guided `go -> retro` finds the real moment where a session became expensive, misleading, or hard to recover.
+The goal is not to collect raw transcripts. The goal is to learn whether one `/re-prompt` flow can help you pick a chat, see what went wrong in your own wording, and get a better prompt in your own voice.
 
 ## Install the Codex Plugin
 
@@ -20,11 +20,8 @@ Pass the repository root to `codex plugin marketplace add`; Codex finds `.agents
 Start a new Codex thread after installing the plugin. Then run:
 
 ```text
-/re-prompt-install
-/re-prompt-go
+/re-prompt
 ```
-
-`/re-prompt-install` checks the underlying CLI and asks before installing anything.
 
 Source CLI install is a fallback for maintainers and contributors:
 
@@ -36,62 +33,46 @@ node dist/cli.js --version
 
 ## Run
 
-Fastest first look:
+Normal dogfood flow:
 
 ```text
-/re-prompt-go
+/re-prompt
+1번
+2번
 ```
 
-Quick latest-session report:
-
-```text
-/re-prompt-last
-```
-
-Best evaluation flow:
-
-```text
-/re-prompt-go
-/re-prompt-retro <session-id-or-path>
-```
+The first `/re-prompt` call should show a few candidate Codex chats. Choose one by number. After the coaching output, choose another number if you want to keep comparing.
 
 These commands need local Codex stored sessions under your Codex home. They are most useful on a machine where you have already used Codex CLI.
 
-Optional analyzer comparison:
+Advanced analyzer comparison remains available from the terminal:
 
 ```bash
 re-prompt coach <session-id-or-path> --engine codex
 re-prompt coach <session-id-or-path> --engine claude
 ```
 
-These engines receive only a redacted prompt-coach bundle. `scan`, `go`, and `rules` remain heuristic-only.
-
-Preview conservative AGENTS.md suggestions from repeated evidence:
-
-```text
-/re-prompt-rules
-```
+These engines receive only a redacted prompt-coach bundle. `candidates`, `scan`, `go`, and `rules` remain heuristic-only.
 
 ## What to check
 
-A good report:
+A good coach result:
 
-- cites concrete turn evidence
-- names anchors such as files, commands, failures, package managers, or late constraints
-- avoids pretending a long mixed session had one clear goal
-- marks low confidence when the transcript does not prove intent or outcome
-- gives a better prompt you would consider copy-pasting
-- ties rescue prompts to a specific turn, failure, or correction
-- suggests AGENTS.md rules only for durable repo behavior
-- if `--engine codex` or `--engine claude` was used, clearly says whether it used that engine or fell back to heuristic mode
+- makes the candidate list easy to choose from
+- explains what each chat was about without exposing raw transcript text
+- shows a short piece or summary of what you actually wrote
+- says where that wording became ambiguous, late, broad, or hard to execute
+- rewrites the prompt in a way that still sounds like you
+- gives one rescue line you would actually use mid-session
+- makes analyzer fallback visible when Codex or Claude analysis is unavailable
 
-A bad report:
+A bad coach result:
 
 - says only "be more specific" or "provide more context"
 - invents the user's goal or the session outcome
-- treats a one-off task detail as an AGENTS.md rule
-- promotes a failed inspection command into durable workflow advice
-- misses the real correction or late constraint
+- sounds like generic AI project-management prose
+- loses the user's tone, sentence structure, or directness
+- makes the candidate list feel like a scorecard
 - leaks local paths, private repo details, secrets, or raw transcript content
 - hides analyzer fallback or makes an external analyzer report look more certain than the evidence supports
 
@@ -103,9 +84,9 @@ Codex transcripts may contain private code, prompts, local paths, command output
 
 Good public feedback:
 
-- "The report said Turn 8 was the first late constraint, but the actual correction was Turn 3."
-- "The better prompt was useful, but the AGENTS.md suggestion was too specific to one task."
-- "The scan ranking put a clean session above the session where commands failed repeatedly."
+- "Candidate 1 was actually not the messy session; Candidate 2 was."
+- "The rewrite kept my wording, but it missed the actual constraint I cared about."
+- "The rescue line was useful, but the candidate summary was too vague."
 
 Avoid public feedback like:
 
@@ -129,21 +110,22 @@ Use the GitHub issue templates:
 
 Green:
 
-- 70% or more of reports are at least partially right
-- 50% or more of better prompts feel copy-pasteable
+- people understand what `/re-prompt` is asking them to do
+- 70% or more of selected coach reports are at least partially right
+- 50% or more of rewrites feel copy-pasteable
 - serious misleading reports are rare
 - no install or parser blockers
 - no local path or secret leak reports
 
 Yellow:
 
-- `scan` ranking feels right, but `retro` is too generic
-- reports are mostly right, but too long or not actionable
-- AGENTS.md suggestions are still too eager
+- candidate selection feels right, but the coach output is too generic
+- rewrites are mostly right, but too polished or not in the user's voice
+- advanced reports are useful but the default plugin flow still feels awkward
 
 Red:
 
+- candidate summaries do not explain what the chat was about
 - long sessions are repeatedly collapsed into one invented goal
 - correction false positives are common
-- failed inspection commands are promoted into durable rules
 - user intent or outcome is often guessed with high confidence

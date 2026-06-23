@@ -18,8 +18,7 @@ Run this from the repository root. Codex expects the marketplace root and discov
 Then start a new Codex thread and run:
 
 ```text
-/re-prompt-install
-/re-prompt-go
+/re-prompt
 ```
 
 The plugin source lives in `plugins/re-prompt`. It is distributed through the repository marketplace, not the npm tarball.
@@ -45,9 +44,11 @@ pnpm pack
 mkdir /tmp/re-prompt-install-test
 cd /tmp/re-prompt-install-test
 npm init -y
-npm install /path/to/re-prompt-0.3.1.tgz
+npm install /path/to/re-prompt-0.4.0.tgz
 npx re-prompt --version
 npx re-prompt --help
+npx re-prompt
+npx re-prompt candidates --top 3
 npx re-prompt go
 npx re-prompt doctor
 npx re-prompt scan --since 30d
@@ -94,6 +95,6 @@ It should not include local Codex transcripts, dogfood reports, temp tarballs, o
 ## Interpreting Failures
 
 - `doctor` reports missing sessions: Codex CLI has not created stored sessions on this machine yet.
-- `scan --since 30d` prints no useful rows: there may be no recent analyzable Codex sessions.
+- `candidates` or `scan --since 30d` prints no useful rows: there may be no recent analyzable Codex sessions.
 - `coach --engine none` fails with no analyzable sessions: acceptable on a fresh machine, but not on a maintainer machine with real Codex history.
 - package contents include unexpected files: fix the `files` allowlist in `package.json` before npm publish.

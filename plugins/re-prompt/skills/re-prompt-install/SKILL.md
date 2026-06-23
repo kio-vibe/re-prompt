@@ -41,7 +41,7 @@ If the CLI is missing, tell the user exactly what will be installed and ask for 
 Preferred GitHub Release tarball install:
 
 ```bash
-npm install -g https://github.com/kio-vibe/re-prompt/releases/download/v0.3.0/re-prompt-0.3.0.tgz
+npm install -g https://github.com/kio-vibe/re-prompt/releases/download/v0.3.1/re-prompt-0.3.1.tgz
 ```
 
 ## Response Style

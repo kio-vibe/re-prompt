@@ -74,7 +74,7 @@ describe("CLI commands", () => {
     });
 
     expect(result.exitCode).toBe(0);
-    expect(result.stdout).toBe("0.3.0");
+    expect(result.stdout).toBe("0.3.1");
   });
 
   it("prints doctor and scan output for a temp CODEX_HOME", async () => {
@@ -192,8 +192,8 @@ describe("CLI commands", () => {
     expect(goCommand).toContain("only local triage");
     expect(installCommand).toContain("command -v re-prompt");
     expect(installCommand).toContain("Only inspect repository docs or plugin files if one of these checks fails");
-    expect(installCommand).toContain("0.3.0");
-    expect(installCommand).toContain("re-prompt-0.3.0.tgz");
+    expect(installCommand).toContain("0.3.1");
+    expect(installCommand).toContain("re-prompt-0.3.1.tgz");
     expect(skill).toContain("Respond in the user's language");
     expect(skill).toContain("Do not paste raw CLI output verbatim");
     expect(skill).toContain("rewrite them in the user's own voice");

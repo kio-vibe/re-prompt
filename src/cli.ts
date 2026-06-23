@@ -66,7 +66,7 @@ export function createProgram(): Command {
   const program = new Command()
     .name("re-prompt")
     .description("A local-first Codex session prompt coach.")
-    .version("0.3.0");
+    .version("0.3.1");
 
   program
     .command("doctor")

@@ -63,7 +63,7 @@ If an issue requires sensitive detail to reproduce, describe the shape of the da
 
 ## What re-prompt does locally
 
-`re-prompt` is local-first by default in `v0.3.0`.
+`re-prompt` is local-first by default in `v0.3.1`.
 
 - The Codex plugin runs local `re-prompt` commands under the hood.
 - The plugin does not upload transcripts.

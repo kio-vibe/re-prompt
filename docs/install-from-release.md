@@ -5,42 +5,43 @@
 If you prefer the plugin-first flow, start with [install the Codex plugin](install-codex-plugin.md).
 
 ```bash
-npm install -g https://github.com/kio-vibe/re-prompt/releases/download/v0.3.1/re-prompt-0.3.1.tgz
+npm install -g https://github.com/kio-vibe/re-prompt/releases/download/v0.4.0/re-prompt-0.4.0.tgz
 re-prompt --version
-re-prompt go
+re-prompt
 ```
 
 Expected version:
 
 ```txt
-0.3.1
+0.4.0
 ```
 
 ## First run
 
-Use the guided CLI command first:
+Use the candidate picker first:
 
 ```bash
-re-prompt go
+re-prompt
 ```
 
-It checks local Codex session visibility, suggests a rough session candidate, and prints the exact coach command to run next.
+It shows a few recent Codex sessions in plain language. Pick a session id or use the plugin flow to choose by number.
 
-For a quick latest-session coach:
-
-```bash
-re-prompt coach
-```
-
-For the best evaluation flow:
+For direct prompt coaching:
 
 ```bash
-re-prompt doctor
-re-prompt scan --since 30d
 re-prompt coach <session-id-or-path>
 ```
 
-`doctor`, `scan`, `go`, and `coach` need local Codex stored sessions. They are most useful on a machine where Codex CLI has already been used.
+For advanced investigation:
+
+```bash
+re-prompt doctor
+re-prompt candidates --since 30d
+re-prompt scan --since 30d
+re-prompt retro <session-id-or-path>
+```
+
+`doctor`, `candidates`, `scan`, `go`, and `coach` need local Codex stored sessions. They are most useful on a machine where Codex CLI has already been used.
 
 Optional Claude coach analysis is available for explicit session analysis:
 
@@ -48,7 +49,7 @@ Optional Claude coach analysis is available for explicit session analysis:
 re-prompt coach <session-id-or-path> --engine claude
 ```
 
-The default coach engine is Codex. The Codex plugin exposes the same flows through `/re-prompt-go`, `/re-prompt-last`, and `/re-prompt-retro`.
+The default coach engine is Codex. The Codex plugin exposes the normal flow through one `/re-prompt` skill.
 
 ## Uninstall
 

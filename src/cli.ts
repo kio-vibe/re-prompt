@@ -1,7 +1,6 @@
-import { existsSync, realpathSync } from "node:fs";
+import { existsSync } from "node:fs";
 import { readFile, stat } from "node:fs/promises";
-import { dirname, resolve } from "node:path";
-import { fileURLToPath } from "node:url";
+import { resolve } from "node:path";
 import { Command } from "@commander-js/extra-typings";
 import pc from "picocolors";
 import { execa } from "execa";
@@ -48,6 +47,19 @@ interface ScanRow {
   path: string;
 }
 
+interface CandidateRow {
+  index: number;
+  sessionId: string;
+  turnCount: number;
+  chatSummary: string;
+  shortProblem: string;
+  whyReview: string;
+  startedAt?: string;
+  path: string;
+  score: number;
+  mainIssue: string;
+}
+
 interface AnalyzeResult {
   session: NormalizedSession;
   signals: SessionSignal[];
@@ -66,7 +78,15 @@ export function createProgram(): Command {
   const program = new Command()
     .name("re-prompt")
     .description("A local-first Codex session prompt coach.")
-    .version("0.3.1");
+    .version("0.4.0")
+    .action(async () => {
+      await candidatesCommand({
+        since: "30d",
+        top: 3,
+        format: "md",
+        language: "auto"
+      });
+    });
 
   program
     .command("doctor")
@@ -90,6 +110,26 @@ export function createProgram(): Command {
         since: options.since,
         top: Number(options.top),
         nextStyle: parseNextStyle(options.nextStyle),
+        language: parseGoLanguage(options.language),
+        codexHome: options.codexHome,
+        repo: options.repo
+      });
+    });
+
+  program
+    .command("candidates")
+    .description("List a few recent sessions worth prompt coaching.")
+    .option("--since <range>", "Time range such as 30d or 2026-06-01", "30d")
+    .option("--top <count>", "Maximum candidates to show", "3")
+    .option("--format <format>", "md or json", "md")
+    .option("--language <language>", "Output language: auto, en, or ko", "auto")
+    .option("--codex-home <path>", "Override CODEX_HOME")
+    .option("--repo <path>", "Filter by repo/cwd")
+    .action(async (options) => {
+      await candidatesCommand({
+        since: options.since,
+        top: Number(options.top),
+        format: parseFormat(options.format),
         language: parseGoLanguage(options.language),
         codexHome: options.codexHome,
         repo: options.repo
@@ -277,6 +317,261 @@ async function goCommand(options: {
   });
 }
 
+async function candidatesCommand(options: {
+  since: string;
+  top: number;
+  format: Format;
+  language: GoLanguageOption;
+  codexHome?: string;
+  repo?: string;
+}): Promise<void> {
+  const language = resolveGoLanguage(options.language);
+  const rows = await collectCandidateRows({
+    since: options.since,
+    top: Math.max(Number.isFinite(options.top) ? options.top : 3, 1),
+    codexHome: options.codexHome,
+    repo: options.repo,
+    language
+  });
+
+  if (options.format === "json") {
+    console.log(JSON.stringify(rows.map(toPublicCandidateRow), null, 2));
+    return;
+  }
+
+  printCandidates(rows, { language, since: options.since });
+}
+
+async function collectCandidateRows(options: {
+  since: string;
+  top: number;
+  language: GoLanguage;
+  codexHome?: string;
+  repo?: string;
+}): Promise<CandidateRow[]> {
+  const since = parseSince(options.since);
+  const maxTranscriptBytes = getMaxTranscriptBytes();
+  const sessions = (await locateCodexSessions({ codexHome: options.codexHome, repoPath: options.repo })).filter(
+    (session) => !since || session.mtimeMs >= since.getTime()
+  );
+  const rows: Omit<CandidateRow, "index">[] = [];
+
+  for (const candidate of sessions.slice(0, Math.max(options.top, 1) * 4)) {
+    if (candidate.sizeBytes > maxTranscriptBytes) {
+      rows.push({
+        sessionId: candidate.sessionId,
+        turnCount: 0,
+        chatSummary: options.language === "ko" ? "너무 큰 작업 기록이라 내용을 열지 않았습니다." : "This session is too large to open safely.",
+        shortProblem: options.language === "ko" ? "메모리 보호를 위해 건너뜀" : "Skipped to protect memory.",
+        whyReview:
+          options.language === "ko"
+            ? "큰 작업 기록은 별도 명시 분석이 필요할 수 있습니다."
+            : "Large sessions may need explicit analysis later.",
+        startedAt: candidate.startedAt,
+        path: candidate.transcriptPath,
+        score: 0,
+        mainIssue: "too_large"
+      });
+      continue;
+    }
+
+    try {
+      const session = await loadNormalizedSession(candidate.transcriptPath);
+      const signals = extractSignals(session);
+      const score = computeFrictionScore(session, signals);
+      rows.push({
+        sessionId: session.sessionId,
+        turnCount: session.turns.length,
+        chatSummary: summarizeCandidateChat(session, options.language),
+        shortProblem: summarizeCandidateProblem(signals[0]?.kind ?? "low_friction", options.language),
+        whyReview: summarizeCandidateReason(score, signals[0]?.kind ?? "low_friction", options.language),
+        startedAt: session.startedAt ?? candidate.startedAt,
+        path: session.transcriptPath,
+        score,
+        mainIssue: signals[0]?.kind ?? "low_friction"
+      });
+    } catch {
+      rows.push({
+        sessionId: candidate.sessionId,
+        turnCount: 0,
+        chatSummary: options.language === "ko" ? "이 작업 기록은 파싱하지 못했습니다." : "This session could not be parsed.",
+        shortProblem: options.language === "ko" ? "기록 형식이 맞지 않음" : "Transcript shape could not be read.",
+        whyReview:
+          options.language === "ko"
+            ? "Codex 저장 형식이 바뀌었는지 확인할 후보입니다."
+            : "This may reveal a transcript shape the parser needs to learn.",
+        startedAt: candidate.startedAt,
+        path: candidate.transcriptPath,
+        score: 1,
+        mainIssue: "parse_failed"
+      });
+    }
+  }
+
+  return rows
+    .sort((left, right) => right.score - left.score)
+    .slice(0, options.top)
+    .map((row, index) => ({ ...row, index: index + 1 }));
+}
+
+function toPublicCandidateRow(row: CandidateRow): Omit<CandidateRow, "path" | "score" | "mainIssue"> {
+  return {
+    index: row.index,
+    sessionId: row.sessionId,
+    turnCount: row.turnCount,
+    chatSummary: row.chatSummary,
+    shortProblem: row.shortProblem,
+    whyReview: row.whyReview,
+    startedAt: row.startedAt
+  };
+}
+
+function printCandidates(rows: CandidateRow[], options: { language: GoLanguage; since: string }): void {
+  if (rows.length === 0) {
+    if (options.language === "ko") {
+      console.log(`최근 ${options.since} 기준으로 볼 만한 Codex 작업 기록을 찾지 못했습니다.`);
+      console.log("Codex로 작업을 한 번 진행한 뒤 다시 `/re-prompt` 또는 `re-prompt`를 실행하세요.");
+      return;
+    }
+    console.log(`No recent Codex sessions were found for ${options.since}.`);
+    console.log("Run a Codex coding session first, then run `/re-prompt` or `re-prompt` again.");
+    return;
+  }
+
+  if (options.language === "ko") {
+    console.log("먼저 볼 후보 3개");
+    console.log("");
+    for (const row of rows) {
+      console.log(`${row.index}. ${row.chatSummary}`);
+      console.log(`   왜 볼 만한가: ${row.whyReview}`);
+      console.log(`   문제점 한 줄: ${row.shortProblem}`);
+      console.log(`   세션: ${row.sessionId}`);
+    }
+    console.log("");
+    console.log("분석할 번호만 말해줘. 예: `1번`");
+    return;
+  }
+
+  console.log("Three sessions worth reviewing first");
+  console.log("");
+  for (const row of rows) {
+    console.log(`${row.index}. ${row.chatSummary}`);
+    console.log(`   Why review it: ${row.whyReview}`);
+    console.log(`   Likely issue: ${row.shortProblem}`);
+    console.log(`   Session: ${row.sessionId}`);
+  }
+  console.log("");
+  console.log("Reply with just the number to analyze. Example: `1`");
+}
+
+function summarizeCandidateChat(session: NormalizedSession, language: GoLanguage): string {
+  const initial = firstUsefulUserMessage(session);
+  const latest = lastUsefulUserMessage(session);
+  if (!initial && !latest) {
+    return language === "ko" ? "사용자 요청이 거의 남아 있지 않은 작업방" : "A session with little visible user request text.";
+  }
+  if (initial && latest && initial !== latest) {
+    return language === "ko"
+      ? `처음엔 "${initial}"로 시작했고, 나중엔 "${latest}" 쪽으로 이어진 작업방`
+      : `Started with "${initial}", then later moved toward "${latest}".`;
+  }
+  const text = initial ?? latest!;
+  return language === "ko" ? `"${text}"로 시작한 작업방` : `Started with "${text}".`;
+}
+
+function summarizeCandidateProblem(issue: string, language: GoLanguage): string {
+  const labels: Record<string, { en: string; ko: string }> = {
+    user_correction: { en: "You had to redirect the agent after it moved wrong.", ko: "중간에 방향을 다시 잡아줘야 했습니다." },
+    late_constraint: { en: "An important condition arrived after work had already started.", ko: "중요한 조건이 작업 중간에 뒤늦게 나왔습니다." },
+    repeated_failure: { en: "A command or test failure repeated.", ko: "명령이나 테스트 실패가 반복됐습니다." },
+    verification_gap: { en: "The session ended without enough final checking.", ko: "마지막 확인이 충분하지 않았습니다." },
+    scope_drift: { en: "The work spread wider than the first request.", ko: "처음 요청보다 작업 범위가 넓어졌습니다." },
+    file_churn: { en: "The session bounced through repeated file edits.", ko: "파일을 여러 번 오가며 고치는 흐름이 누적됐습니다." },
+    premature_edit: { en: "Files changed before enough inspection.", ko: "충분히 살피기 전에 파일 수정이 시작됐습니다." },
+    environment_gap: { en: "Setup or environment details likely blocked progress.", ko: "환경 설정이나 실행 조건이 진행을 막았습니다." },
+    too_large: { en: "The session is too large for the quick picker.", ko: "빠른 후보 목록에서 열기엔 기록이 너무 큽니다." },
+    parse_failed: { en: "The stored transcript shape could not be parsed.", ko: "저장 기록 형식을 읽지 못했습니다." },
+    low_friction: { en: "No strong problem pattern stood out.", ko: "강하게 꼬인 패턴은 적었습니다." }
+  };
+  return labels[issue]?.[language] ?? issue.replaceAll("_", " ");
+}
+
+function summarizeCandidateReason(score: number, issue: string, language: GoLanguage): string {
+  if (issue === "too_large" || issue === "parse_failed") {
+    return summarizeCandidateProblem(issue, language);
+  }
+  if (score >= 80) {
+    return language === "ko"
+      ? "후보 중에서 왕복 비용이 가장 커 보입니다."
+      : "It appears to have the highest back-and-forth cost among recent sessions.";
+  }
+  if (score >= 55) {
+    return language === "ko"
+      ? "프롬프트를 조금만 바꿨어도 줄일 수 있었던 왕복이 보입니다."
+      : "It shows avoidable back-and-forth that a better prompt may have reduced.";
+  }
+  if (score >= 30) {
+    return language === "ko" ? "가볍게 점검해볼 만한 신호가 있습니다." : "It has a few signals worth checking.";
+  }
+  return language === "ko" ? "비교용으로 보면 좋은 낮은 문제 후보입니다." : "It is a lower-friction comparison candidate.";
+}
+
+function firstUsefulUserMessage(session: NormalizedSession): string | undefined {
+  for (const turn of session.turns) {
+    for (const message of turn.userMessages) {
+      const text = summarizeUserMessage(message.text);
+      if (text) {
+        return text;
+      }
+    }
+  }
+  return undefined;
+}
+
+function lastUsefulUserMessage(session: NormalizedSession): string | undefined {
+  for (const turn of [...session.turns].reverse()) {
+    for (const message of [...turn.userMessages].reverse()) {
+      const text = summarizeUserMessage(message.text);
+      if (text) {
+        return text;
+      }
+    }
+  }
+  return undefined;
+}
+
+function summarizeUserMessage(text: string): string | undefined {
+  const visible = extractVisibleUserRequestForCandidate(text)
+    .replace(/<details>[\s\S]*?<\/details>/gi, "")
+    .replace(/```[\s\S]*?```/g, " ")
+    .split(/\r?\n/)
+    .map((line) => line.trim())
+    .filter(Boolean)
+    .filter((line) => !line.startsWith(">"))
+    .filter((line) => !/^#\s*Files mentioned by the user:/i.test(line))
+    .filter((line) => !/^#\s*(Start re-prompt flow|Run re-prompt go|re-prompt-go 분석)/i.test(line))
+    .filter((line) => !/^<image\b/i.test(line))
+    .join(" ")
+    .replace(/\s+/g, " ")
+    .trim();
+  if (!visible) {
+    return undefined;
+  }
+  return truncateForCandidate(redactValue(visible).value, 96);
+}
+
+function extractVisibleUserRequestForCandidate(text: string): string {
+  const requestMatch = text.match(/##\s*My request for Codex:\s*([\s\S]*)/i);
+  return requestMatch?.[1] ?? text;
+}
+
+function truncateForCandidate(text: string, maxLength: number): string {
+  if (text.length <= maxLength) {
+    return text;
+  }
+  return `${text.slice(0, maxLength - 1).trimEnd()}…`;
+}
+
 function printGoNoSessions(language: GoLanguage, codexHome: string, sessionsDir: string): void {
   if (language === "ko") {
     console.log("아직 Codex 작업 기록을 찾지 못했습니다.");
@@ -399,14 +694,14 @@ function printGoLargestWarning(largest: SessionCandidate | undefined, maxTranscr
 function printGoNextCommands(sessionId: string, nextStyle: NextStyle, language: GoLanguage): void {
   if (nextStyle === "plugin") {
     if (language === "ko") {
-      console.log(`- 이 작업 자세히 보기: /re-prompt-retro ${sessionId}`);
-      console.log("- 가장 최근 작업 빠르게 보기: /re-prompt-last");
-      console.log("- 반복 패턴을 AGENTS.md 규칙 후보로 보기: /re-prompt-rules");
+      console.log(`- 이 후보를 보려면: /re-prompt 입력 후 1번 선택`);
+      console.log(`- 세션 ID를 직접 말해도 됩니다: ${sessionId}`);
+      console.log("- 더 자세한 CLI 사용자는 `re-prompt coach <session-id>`를 쓸 수 있습니다.");
       return;
     }
-    console.log(`- Review this session: /re-prompt-retro ${sessionId}`);
-    console.log("- Quick latest-session report: /re-prompt-last");
-    console.log("- Preview durable repo rules: /re-prompt-rules");
+    console.log("- Review this candidate: type /re-prompt and choose 1");
+    console.log(`- Or mention this session id directly: ${sessionId}`);
+    console.log("- Advanced CLI users can run `re-prompt coach <session-id>`.");
     return;
   }
 
@@ -860,6 +1155,15 @@ function formatCheck(ok: boolean, text: string): string {
 
 async function main(): Promise<void> {
   try {
+    if (process.argv.slice(2).length === 0) {
+      await candidatesCommand({
+        since: "30d",
+        top: 3,
+        format: "md",
+        language: "auto"
+      });
+      return;
+    }
     await createProgram().parseAsync(process.argv);
   } catch (error) {
     console.error(pc.red(error instanceof Error ? error.message : String(error)));
@@ -867,19 +1171,4 @@ async function main(): Promise<void> {
   }
 }
 
-const invokedPath = process.argv[1] ? resolve(process.argv[1]) : "";
-const currentPath = fileURLToPath(import.meta.url);
-if (sameFilePath(invokedPath, currentPath) || dirname(invokedPath).endsWith("src")) {
-  void main();
-}
-
-function sameFilePath(left: string, right: string): boolean {
-  if (!left || !right) {
-    return false;
-  }
-  try {
-    return realpathSync(left) === realpathSync(right);
-  } catch {
-    return resolve(left) === resolve(right);
-  }
-}
+void main();

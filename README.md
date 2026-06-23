@@ -2,7 +2,7 @@
 
 A Codex session prompt coach plugin and CLI.
 
-`re-prompt` is not a prompt scorecard. It reads saved local Codex transcripts, looks at what you actually wrote, and coaches a clearer version in your own voice.
+`re-prompt` is not a prompt scorecard. It reads saved local Codex transcripts, helps you pick one session worth reviewing, then rewrites your actual prompt in your own voice.
 
 ## Install
 
@@ -23,45 +23,50 @@ Requirements:
 - local Codex stored sessions
 - access to `~/.codex/sessions` on your machine
 
-The plugin uses the `re-prompt` CLI under the hood. Run `/re-prompt-install` from Codex to check or install it explicitly.
+The plugin uses the `re-prompt` CLI under the hood. If the CLI is missing, `/re-prompt` will tell you the install command and ask before running anything.
 
 ## Quick Start
 
-Fastest first look:
+In Codex, start with one command:
 
 ```text
-/re-prompt-go
+/re-prompt
 ```
 
-Quick latest-session coach:
+It will show a few recent Codex session candidates in plain language:
+
+- what that chat was about
+- why it might be worth reviewing
+- the likely prompt problem in one short line
+
+Reply with a number, such as:
 
 ```text
-/re-prompt-last
+1번
 ```
 
-Best evaluation flow:
+Then `re-prompt` coaches that session: what you actually wrote, where it became ambiguous, and how to say it better in your own voice.
 
-```text
-/re-prompt-go
-/re-prompt-retro <session-id-or-path>
-```
+## CLI Fallback
 
-Copy the `Session` value from `/re-prompt-go` into `/re-prompt-retro`.
-
-Underlying AI-assisted coach command:
+The same candidate picker is available from a terminal:
 
 ```bash
-re-prompt coach <session-id-or-path> --engine codex
+re-prompt
+re-prompt candidates --top 3
+```
+
+Advanced users can still run the underlying commands:
+
+```bash
+re-prompt coach <session-id-or-path>
 re-prompt coach <session-id-or-path> --engine claude
+re-prompt scan --since 30d
+re-prompt retro <session-id-or-path>
+re-prompt rules --since 30d
 ```
 
-`codex` is the default coach engine. Codex and Claude receive only a redacted prompt-coach bundle, not raw transcripts.
-
-Preview conservative AGENTS.md suggestions from repeated recent evidence:
-
-```text
-/re-prompt-rules
-```
+`coach` uses Codex by default. Codex and Claude receive only a redacted prompt-coach bundle, not raw transcripts.
 
 ## What It Does
 
@@ -81,7 +86,7 @@ Preview conservative AGENTS.md suggestions from repeated recent evidence:
 
 ## Dogfood / Feedback
 
-`v0.3.1` is ready for Codex plugin dogfood, but it is not published to npm yet.
+`v0.4.0` is ready for Codex plugin dogfood, but it is not published to npm yet.
 
 The fastest path is in the [Codex plugin install guide](docs/install-codex-plugin.md).
 
@@ -95,7 +100,7 @@ Use the GitHub issue templates for:
 
 Please do not paste raw Codex transcripts, private code, secrets, or unredacted command output into public issues.
 
-## If `/re-p` Does Not Show re-prompt
+## If `/re-prompt` Does Not Show Up
 
 First confirm the plugin is installed:
 
@@ -103,29 +108,27 @@ First confirm the plugin is installed:
 codex plugin list
 ```
 
-Look for `re-prompt@re-prompt-local`, then open a new Codex thread or restart the Codex app. If `/re-prompt-go` still does not show up, install the command-specific personal skill picker shims from this repository:
+Look for `re-prompt@re-prompt-local`, then open a new Codex thread or restart the Codex app. If `/re-prompt` still does not show up, install the personal skill picker shim from this repository:
 
 ```bash
 bash scripts/install-personal-skill.sh
 ```
 
-This copies the plugin skills under `plugins/re-prompt/skills/*/SKILL.md` to `$CODEX_HOME/skills/<skill-name>/SKILL.md`. It does not upload transcripts, change Codex sessions, or install global packages.
+This copies `plugins/re-prompt/skills/re-prompt/SKILL.md` to `$CODEX_HOME/skills/re-prompt/SKILL.md`. It also removes old re-prompt-owned command-specific shims such as `re-prompt-go` when they are detected. It does not upload transcripts, change Codex sessions, or install global packages.
 
 ## Commands
 
-Codex plugin commands:
+Codex plugin command:
 
 ```text
-/re-prompt-install
-/re-prompt-go
-/re-prompt-last
-/re-prompt-retro <session-id-or-path>
-/re-prompt-rules
+/re-prompt
 ```
 
 Underlying CLI commands:
 
 ```bash
+re-prompt
+re-prompt candidates --since 30d
 re-prompt doctor
 re-prompt scan --since 30d
 re-prompt go
@@ -142,7 +145,7 @@ re-prompt rules --since 30d
 
 `re-prompt` reads local Codex transcripts and redacts common secrets and local home paths before analysis. Plugin coach flows use Codex by default and send only a redacted prompt-coach bundle, not raw transcripts.
 
-`scan`, `go`, and `rules` stay local heuristic-only. `coach` can use Codex, Claude, or local fallback.
+`candidates`, `scan`, `go`, and `rules` stay local heuristic-only. `coach` can use Codex, Claude, or local fallback.
 
 AGENTS.md patches are dry-run only in this release.
 
@@ -171,7 +174,7 @@ pnpm pack
 mkdir /tmp/re-prompt-install-test
 cd /tmp/re-prompt-install-test
 npm init -y
-npm install /path/to/re-prompt-0.3.1.tgz
+npm install /path/to/re-prompt-0.4.0.tgz
 npx re-prompt --version
 npx re-prompt doctor
 ```

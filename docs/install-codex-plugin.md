@@ -2,7 +2,13 @@
 
 `re-prompt` is dogfooding a Codex plugin before npm publish.
 
-The plugin gives you Codex commands such as `/re-prompt-go`, `/re-prompt-last`, and `/re-prompt-retro`. It still uses the local `re-prompt` CLI under the hood.
+The plugin exposes one user-facing entry point:
+
+```text
+/re-prompt
+```
+
+It still uses the local `re-prompt` CLI under the hood.
 
 ## Install
 
@@ -17,9 +23,9 @@ codex plugin add re-prompt@re-prompt-local
 
 Pass the repository root to `codex plugin marketplace add`; Codex finds `.agents/plugins/marketplace.json` inside it.
 
-Start a new Codex thread after installing the plugin so Codex can load the commands and skill.
+Start a new Codex thread after installing the plugin so Codex can load the skill.
 
-## If `/re-p` Does Not Show re-prompt
+## If `/re-prompt` Does Not Show Up
 
 First confirm the plugin is enabled:
 
@@ -27,13 +33,13 @@ First confirm the plugin is enabled:
 codex plugin list
 ```
 
-Look for `re-prompt@re-prompt-local`, then open a new Codex thread or restart the Codex app. If the plugin is enabled but `/re-prompt-go` still does not show up, install the command-specific personal skill picker shims:
+Look for `re-prompt@re-prompt-local`, then open a new Codex thread or restart the Codex app. If the plugin is enabled but `/re-prompt` still does not show up, install the personal skill picker shim:
 
 ```bash
 bash scripts/install-personal-skill.sh
 ```
 
-The shim installer copies every plugin skill under `plugins/re-prompt/skills/*/SKILL.md` to `$CODEX_HOME/skills/<skill-name>/SKILL.md`, so the composer can index `/re-prompt-go`, `/re-prompt-last`, `/re-prompt-retro`, `/re-prompt-rules`, and `/re-prompt-install` as personal skills. It does not upload transcripts, change Codex sessions, or install global packages.
+The shim installer copies `plugins/re-prompt/skills/re-prompt/SKILL.md` to `$CODEX_HOME/skills/re-prompt/SKILL.md`. It also removes old re-prompt-owned command-specific shims when detected. It does not upload transcripts, change Codex sessions, or install global packages.
 
 To preview the install path without writing files:
 
@@ -46,42 +52,26 @@ bash scripts/install-personal-skill.sh --dry-run
 In Codex, run:
 
 ```text
-/re-prompt-install
-/re-prompt-go
+/re-prompt
 ```
 
-`/re-prompt-install` checks Node.js 20+ and whether the `re-prompt` CLI is installed. It does not install automatically unless you explicitly approve the command.
+The skill checks whether the local CLI exists. If it is missing, it will show the install command and ask before running it.
 
-`/re-prompt-go` checks local Codex session visibility, ranks recent high-friction sessions, and prints the exact session id to use next.
+When the CLI is available, `/re-prompt` shows a few recent Codex session candidates. Pick one by number, such as `1번` or `1`, and the plugin will run prompt coaching for that session.
 
-## Common Flows
+## Advanced CLI Flows
 
-Analyze the latest analyzable session:
-
-```text
-/re-prompt-last
-```
-
-Analyze a specific session:
-
-```text
-/re-prompt-retro <session-id-or-path>
-```
-
-Preview durable AGENTS.md suggestions:
-
-```text
-/re-prompt-rules
-```
-
-Optional CLI-enhanced analysis is still explicit:
+The plugin hides these from the normal first-run path, but they remain available:
 
 ```bash
+re-prompt candidates --since 30d
 re-prompt coach <session-id-or-path> --engine codex
 re-prompt coach <session-id-or-path> --engine claude
+re-prompt retro <session-id-or-path>
+re-prompt rules --since 30d
 ```
 
-`scan`, `go`, and `rules` remain heuristic-only. Use `re-prompt retro <session-id-or-path>` only when you want the detailed forensic report.
+`candidates`, `scan`, `go`, and `rules` remain heuristic-only. Use `re-prompt retro <session-id-or-path>` only when you want the detailed forensic report.
 
 ## Privacy
 

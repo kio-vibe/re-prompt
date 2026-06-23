@@ -25,61 +25,73 @@ fi
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 CODEX_HOME="${CODEX_HOME:-$HOME/.codex}"
-SOURCE_ROOT="$ROOT/plugins/re-prompt/skills"
+SOURCE="$ROOT/plugins/re-prompt/skills/re-prompt/SKILL.md"
+TARGET_DIR="$CODEX_HOME/skills/re-prompt"
+TARGET="$TARGET_DIR/SKILL.md"
+LEGACY_SKILLS=(
+  "re-prompt-go"
+  "re-prompt-install"
+  "re-prompt-last"
+  "re-prompt-retro"
+  "re-prompt-rules"
+)
 
-if [ ! -d "$SOURCE_ROOT" ]; then
-  echo "Source skill directory not found: $SOURCE_ROOT" >&2
+if [ ! -f "$SOURCE" ]; then
+  echo "Source skill not found: $SOURCE" >&2
   exit 1
 fi
 
-SOURCES=()
-while IFS= read -r source; do
-  SOURCES+=("$source")
-done < <(find "$SOURCE_ROOT" -mindepth 2 -maxdepth 2 -name SKILL.md | sort)
-
-if [ "${#SOURCES[@]}" -eq 0 ]; then
-  echo "No source skills found under: $SOURCE_ROOT" >&2
+if ! grep -q '^name: re-prompt$' "$SOURCE"; then
+  echo "Source skill is missing expected frontmatter: name: re-prompt" >&2
   exit 1
 fi
 
-validate_skill() {
-  local source="$1"
-  local skill_name="$2"
+if ! grep -q '^description:' "$SOURCE"; then
+  echo "Source skill is missing a description frontmatter field: $SOURCE" >&2
+  exit 1
+fi
 
-  if ! grep -q "^name: $skill_name$" "$source"; then
-    echo "Source skill is missing expected frontmatter: name: $skill_name" >&2
-    exit 1
-  fi
+is_re_prompt_legacy_skill() {
+  local skill_name="$1"
+  local path="$CODEX_HOME/skills/$skill_name/SKILL.md"
 
-  if ! grep -q '^description:' "$source"; then
-    echo "Source skill is missing a description frontmatter field: $source" >&2
-    exit 1
-  fi
+  [ -f "$path" ] || return 1
+  grep -q "^name: $skill_name$" "$path" || return 1
+  grep -q 'Do not ask the user to paste raw rollout JSONL' "$path" || return 1
+  grep -q 're-prompt' "$path" || return 1
 }
 
 echo "re-prompt personal skill install"
+echo "Source: $SOURCE"
+echo "Target: $TARGET"
 
-for source in "${SOURCES[@]}"; do
-  skill_name="$(basename "$(dirname "$source")")"
-  target="$CODEX_HOME/skills/$skill_name/SKILL.md"
-  validate_skill "$source" "$skill_name"
-  echo "Source: $source"
-  echo "Target: $target"
+for skill_name in "${LEGACY_SKILLS[@]}"; do
+  legacy_dir="$CODEX_HOME/skills/$skill_name"
+  if is_re_prompt_legacy_skill "$skill_name"; then
+    echo "Cleanup: remove legacy re-prompt-owned skill $legacy_dir"
+  else
+    echo "Cleanup: skip $legacy_dir (missing or not confirmed re-prompt-owned)"
+  fi
 done
 
 if [ "$DRY_RUN" = true ]; then
   echo "Dry run: no files written."
-  echo "After install, open a new Codex thread or restart Codex, then type /re-prompt-go."
+  echo "After install, open a new Codex thread or restart Codex, then type /re-prompt."
   exit 0
 fi
 
-for source in "${SOURCES[@]}"; do
-  skill_name="$(basename "$(dirname "$source")")"
-  target_dir="$CODEX_HOME/skills/$skill_name"
-  target="$target_dir/SKILL.md"
-  mkdir -p "$target_dir"
-  cp "$source" "$target"
+mkdir -p "$TARGET_DIR"
+cp "$SOURCE" "$TARGET"
+
+removed=0
+for skill_name in "${LEGACY_SKILLS[@]}"; do
+  legacy_dir="$CODEX_HOME/skills/$skill_name"
+  if is_re_prompt_legacy_skill "$skill_name"; then
+    rm -rf "$legacy_dir"
+    removed=$((removed + 1))
+  fi
 done
 
-echo "Installed ${#SOURCES[@]} personal skill shims."
-echo "Open a new Codex thread or restart Codex, then type /re-prompt-go."
+echo "Installed re-prompt personal skill."
+echo "Removed $removed legacy command-specific skill shim(s)."
+echo "Open a new Codex thread or restart Codex, then type /re-prompt."

@@ -63,13 +63,13 @@ If an issue requires sensitive detail to reproduce, describe the shape of the da
 
 ## What re-prompt does locally
 
-`re-prompt` is local-first by default in `v0.3.1`.
+`re-prompt` is local-first by default in `v0.4.0`.
 
 - The Codex plugin runs local `re-prompt` commands under the hood.
 - The plugin does not upload transcripts.
-- The plugin does not auto-install the global CLI; `/re-prompt-install` asks before running install commands.
+- The plugin does not auto-install the global CLI; `/re-prompt` asks before running install commands if the CLI is missing.
 - Plugin coach flows use Codex by default and send only a redacted prompt-coach bundle, not raw transcripts.
-- `scan`, `go`, and `rules` remain deterministic local heuristic commands.
+- `candidates`, `scan`, `go`, and `rules` remain deterministic local heuristic commands.
 - It redacts common secrets and local home paths before generating reports.
 - AGENTS.md suggestions are dry-run previews.
 

@@ -27,6 +27,8 @@ import { parseCodexJsonl } from "./sources/codex/parseCodexJsonl.js";
 
 type Format = "md" | "json";
 type NextStyle = "cli" | "plugin";
+type GoLanguageOption = "auto" | "en" | "ko";
+type GoLanguage = "en" | "ko";
 const DEFAULT_MAX_TRANSCRIPT_BYTES = 50 * 1024 * 1024;
 
 interface ScanRow {
@@ -48,7 +50,7 @@ export function createProgram(): Command {
   const program = new Command()
     .name("re-prompt")
     .description("A local-first Codex session postmortem CLI.")
-    .version("0.2.2");
+    .version("0.2.3");
 
   program
     .command("doctor")
@@ -64,6 +66,7 @@ export function createProgram(): Command {
     .option("--since <range>", "Time range such as 30d or 2026-06-01", "30d")
     .option("--top <count>", "Maximum sessions to show", "5")
     .option("--next-style <style>", "Next command style: cli or plugin", "cli")
+    .option("--language <language>", "Output language: auto, en, or ko", "auto")
     .option("--codex-home <path>", "Override CODEX_HOME")
     .option("--repo <path>", "Filter by repo/cwd")
     .action(async (options) => {
@@ -71,6 +74,7 @@ export function createProgram(): Command {
         since: options.since,
         top: Number(options.top),
         nextStyle: parseNextStyle(options.nextStyle),
+        language: parseGoLanguage(options.language),
         codexHome: options.codexHome,
         repo: options.repo
       });
@@ -188,10 +192,18 @@ async function doctorCommand(options: { codexHome?: string }): Promise<void> {
   console.log("analyzer: heuristic-only by default; optional codex/claude for retro and last");
 }
 
-async function goCommand(options: { since: string; top: number; nextStyle: NextStyle; codexHome?: string; repo?: string }): Promise<void> {
+async function goCommand(options: {
+  since: string;
+  top: number;
+  nextStyle: NextStyle;
+  language: GoLanguageOption;
+  codexHome?: string;
+  repo?: string;
+}): Promise<void> {
   const codexHome = options.codexHome ?? defaultCodexHome();
   const sessionsDir = resolve(codexHome, "sessions");
   const maxTranscriptBytes = getMaxTranscriptBytes();
+  const language = resolveGoLanguage(options.language);
   const sessions = await locateCodexSessions({ codexHome, repoPath: options.repo });
   const largest = sessions.reduce<SessionCandidate | undefined>(
     (current, session) => (!current || session.sizeBytes > current.sizeBytes ? session : current),
@@ -200,22 +212,9 @@ async function goCommand(options: { since: string; top: number; nextStyle: NextS
 
   console.log("re-prompt go");
   console.log("");
-  console.log(formatCheck(existsSync(codexHome), `CODEX_HOME: ${codexHome}`));
-  console.log(formatCheck(existsSync(sessionsDir), `sessions directory: ${sessionsDir}`));
-  console.log(formatCheck(sessions.length > 0, `found sessions: ${sessions.length}`));
-  if (largest) {
-    const warning =
-      largest.sizeBytes > maxTranscriptBytes
-        ? ` (${formatBytes(largest.sizeBytes)}; larger than scan limit ${formatBytes(maxTranscriptBytes)})`
-        : ` (${formatBytes(largest.sizeBytes)})`;
-    console.log(formatCheck(largest.sizeBytes <= maxTranscriptBytes, `largest session: ${largest.transcriptPath}${warning}`));
-  }
-  console.log("");
 
   if (sessions.length === 0) {
-    console.log("No Codex sessions found yet.");
-    console.log("Run Codex on a coding task first, then come back and run `re-prompt go` again.");
-    console.log("For diagnostics, run `re-prompt doctor`.");
+    printGoNoSessions(language, codexHome, sessionsDir);
     return;
   }
 
@@ -227,24 +226,197 @@ async function goCommand(options: { since: string; top: number; nextStyle: NextS
   });
 
   if (rows.length === 0) {
-    console.log(`No recent Codex sessions matched --since ${options.since}.`);
-    console.log("Try `re-prompt scan --since 90d` or `re-prompt last`.");
+    printGoNoRecentRows(language, options.since);
     return;
   }
 
-  console.log(`Top sessions since ${options.since}:`);
-  printScanTable(rows);
+  printGoSummary({
+    language,
+    sessionsCount: sessions.length,
+    since: options.since,
+    rows,
+    largest,
+    maxTranscriptBytes,
+    codexHome,
+    sessionsDir,
+    nextStyle: options.nextStyle
+  });
+}
+
+function printGoNoSessions(language: GoLanguage, codexHome: string, sessionsDir: string): void {
+  if (language === "ko") {
+    console.log("아직 Codex 작업 기록을 찾지 못했습니다.");
+    console.log("");
+    console.log("Codex로 코딩 작업을 한 번 실행한 뒤 다시 `re-prompt go`를 실행하세요.");
+    console.log("문제가 계속되면 `re-prompt doctor`로 저장 위치를 확인할 수 있습니다.");
+    console.log("");
+    console.log("확인한 위치:");
+    console.log(`- CODEX_HOME: ${codexHome}`);
+    console.log(`- sessions: ${sessionsDir}`);
+    return;
+  }
+
+  console.log("No local Codex session history was found yet.");
+  console.log("");
+  console.log("Run Codex on a coding task first, then come back and run `re-prompt go` again.");
+  console.log("For diagnostics, run `re-prompt doctor`.");
+  console.log("");
+  console.log("Checked locations:");
+  console.log(`- CODEX_HOME: ${codexHome}`);
+  console.log(`- sessions: ${sessionsDir}`);
+}
+
+function printGoNoRecentRows(language: GoLanguage, since: string): void {
+  if (language === "ko") {
+    console.log(`최근 범위(--since ${since})에서 회고할 Codex 작업을 찾지 못했습니다.`);
+    console.log("더 넓게 보려면 `re-prompt scan --since 90d`를 실행하거나, 최근 작업은 `re-prompt last`로 확인하세요.");
+    return;
+  }
+
+  console.log(`No recent Codex sessions matched --since ${since}.`);
+  console.log("Try `re-prompt scan --since 90d` or `re-prompt last`.");
+}
+
+function printGoSummary(options: {
+  language: GoLanguage;
+  sessionsCount: number;
+  since: string;
+  rows: ScanRow[];
+  largest?: SessionCandidate;
+  maxTranscriptBytes: number;
+  codexHome: string;
+  sessionsDir: string;
+  nextStyle: NextStyle;
+}): void {
+  const top = options.rows[0]!;
+  if (options.language === "ko") {
+    console.log(`최근 Codex 작업 기록 ${options.sessionsCount}개를 찾았습니다.`);
+    console.log(`최근 ${options.since} 기준으로 가장 먼저 회고해볼 작업입니다.`);
+    console.log("");
+    console.log("- 작업 ID: " + top.sessionId);
+    console.log(`- 꼬였을 가능성: ${goPriorityLabel(top.score, "ko")} (${top.score}/100)`);
+    console.log(`- 대화/작업 횟수: ${top.turns}`);
+    console.log(`- 주요 패턴: ${goIssueLabel(top.mainIssue, "ko")}`);
+    console.log("- 분석 방식: 외부 AI 호출 없이 로컬 규칙으로 분석");
+    printGoOtherRows(options.rows, "ko");
+    printGoLargestWarning(options.largest, options.maxTranscriptBytes, "ko");
+    console.log("");
+    console.log("다음에 해볼 것:");
+    printGoNextCommands(top.sessionId, options.nextStyle, "ko");
+    console.log("");
+    console.log("확인한 위치:");
+    console.log(`- CODEX_HOME: ${options.codexHome}`);
+    console.log(`- sessions: ${options.sessionsDir}`);
+    return;
+  }
+
+  console.log(`Found ${options.sessionsCount} local Codex sessions.`);
+  console.log(`Most worth reviewing from the last ${options.since}:`);
+  console.log("");
+  console.log("- Session: " + top.sessionId);
+  console.log(`- Review priority: ${goPriorityLabel(top.score, "en")} (${top.score}/100)`);
+  console.log(`- Conversation length: ${top.turns} turns`);
+  console.log(`- Main pattern: ${goIssueLabel(top.mainIssue, "en")}`);
+  console.log("- Analysis mode: Local rules only, no external AI call");
+  printGoOtherRows(options.rows, "en");
+  printGoLargestWarning(options.largest, options.maxTranscriptBytes, "en");
   console.log("");
   console.log("Next commands:");
-  if (options.nextStyle === "plugin") {
-    console.log(`- Analyze the top session: /re-prompt-retro ${rows[0]!.sessionId}`);
+  printGoNextCommands(top.sessionId, options.nextStyle, "en");
+  console.log("");
+  console.log("Checked locations:");
+  console.log(`- CODEX_HOME: ${options.codexHome}`);
+  console.log(`- sessions: ${options.sessionsDir}`);
+}
+
+function printGoOtherRows(rows: ScanRow[], language: GoLanguage): void {
+  const others = rows.slice(1);
+  if (others.length === 0) {
+    return;
+  }
+  console.log("");
+  console.log(language === "ko" ? "다른 후보:" : "Other candidates:");
+  for (const row of others) {
+    if (language === "ko") {
+      console.log(`- ${row.sessionId}: ${goPriorityLabel(row.score, "ko")} · ${goIssueLabel(row.mainIssue, "ko")}`);
+    } else {
+      console.log(`- ${row.sessionId}: ${goPriorityLabel(row.score, "en")} · ${goIssueLabel(row.mainIssue, "en")}`);
+    }
+  }
+}
+
+function printGoLargestWarning(largest: SessionCandidate | undefined, maxTranscriptBytes: number, language: GoLanguage): void {
+  if (!largest || largest.sizeBytes <= maxTranscriptBytes) {
+    return;
+  }
+  const path = redactValue(largest.transcriptPath).value;
+  console.log("");
+  if (language === "ko") {
+    console.log(
+      `참고: 너무 큰 작업 기록 하나는 메모리 보호를 위해 건너뜁니다: ${path} (${formatBytes(largest.sizeBytes)}, 제한 ${formatBytes(maxTranscriptBytes)})`
+    );
+    return;
+  }
+  console.log(
+    `Note: one very large session is skipped to protect memory: ${path} (${formatBytes(largest.sizeBytes)}, limit ${formatBytes(maxTranscriptBytes)})`
+  );
+}
+
+function printGoNextCommands(sessionId: string, nextStyle: NextStyle, language: GoLanguage): void {
+  if (nextStyle === "plugin") {
+    if (language === "ko") {
+      console.log(`- 이 작업 자세히 보기: /re-prompt-retro ${sessionId}`);
+      console.log("- 가장 최근 작업 빠르게 보기: /re-prompt-last");
+      console.log("- 반복 패턴을 AGENTS.md 규칙 후보로 보기: /re-prompt-rules");
+      return;
+    }
+    console.log(`- Review this session: /re-prompt-retro ${sessionId}`);
     console.log("- Quick latest-session report: /re-prompt-last");
     console.log("- Preview durable repo rules: /re-prompt-rules");
-  } else {
-    console.log(`- Analyze the top session: re-prompt retro ${rows[0]!.sessionId}`);
-    console.log("- Quick latest-session report: re-prompt last");
-    console.log("- Preview durable repo rules: re-prompt rules --since 30d");
+    return;
   }
+
+  if (language === "ko") {
+    console.log(`- 이 작업 자세히 보기: re-prompt retro ${sessionId}`);
+    console.log("- 가장 최근 작업 빠르게 보기: re-prompt last");
+    console.log("- 반복 패턴을 AGENTS.md 규칙 후보로 보기: re-prompt rules --since 30d");
+    return;
+  }
+  console.log(`- Review this session: re-prompt retro ${sessionId}`);
+  console.log("- Quick latest-session report: re-prompt last");
+  console.log("- Preview durable repo rules: re-prompt rules --since 30d");
+}
+
+function goPriorityLabel(score: number, language: GoLanguage): string {
+  if (score <= 0) {
+    return language === "ko" ? "건너뜀" : "skipped";
+  }
+  if (score >= 80) {
+    return language === "ko" ? "매우 높음" : "very high";
+  }
+  if (score >= 55) {
+    return language === "ko" ? "높음" : "high";
+  }
+  if (score >= 30) {
+    return language === "ko" ? "중간" : "medium";
+  }
+  return language === "ko" ? "낮음" : "low";
+}
+
+function goIssueLabel(issue: string, language: GoLanguage): string {
+  const labels: Record<string, { en: string; ko: string }> = {
+    user_correction: { en: "User had to redirect the session", ko: "사용자가 방향을 다시 잡아줌" },
+    late_constraint: { en: "Important constraint arrived mid-session", ko: "중요한 조건이 작업 중간에 나옴" },
+    repeated_failure: { en: "Same command or test failed repeatedly", ko: "같은 명령/테스트 실패가 반복됨" },
+    verification_gap: { en: "Missing final verification", ko: "마지막 확인 명령이 부족함" },
+    scope_drift: { en: "Work spread beyond the original scope", ko: "작업 범위가 넓어짐" },
+    file_churn: { en: "Repeated file edits", ko: "파일을 여러 번 고치며 왕복함" },
+    premature_edit: { en: "Files changed before enough inspection", ko: "충분히 살피기 전에 파일을 고침" },
+    environment_gap: { en: "Environment or setup issue", ko: "환경 설정/실행 조건에서 막힘" },
+    too_large: { en: "Too large to scan safely", ko: "너무 커서 안전하게 건너뜀" },
+    low_friction: { en: "No strong friction pattern", ko: "크게 꼬인 흔적은 적음" }
+  };
+  return labels[issue]?.[language] ?? issue.replaceAll("_", " ");
 }
 
 async function scanCommand(options: {
@@ -524,6 +696,24 @@ function parseNextStyle(style: string): NextStyle {
     return style;
   }
   throw new Error(`Unsupported next command style "${style}". Use cli or plugin.`);
+}
+
+function parseGoLanguage(language: string): GoLanguageOption {
+  if (language === "auto" || language === "en" || language === "ko") {
+    return language;
+  }
+  throw new Error(`Unsupported language "${language}". Use auto, en, or ko.`);
+}
+
+function resolveGoLanguage(language: GoLanguageOption): GoLanguage {
+  if (language === "en" || language === "ko") {
+    return language;
+  }
+  const locale = [process.env.RE_PROMPT_LANG, process.env.LC_ALL, process.env.LC_MESSAGES, process.env.LANG]
+    .filter(Boolean)
+    .join(" ")
+    .toLowerCase();
+  return locale.split(/\s+/).some((value) => value === "ko" || value.startsWith("ko_") || value.startsWith("ko-")) ? "ko" : "en";
 }
 
 function formatCheck(ok: boolean, text: string): string {

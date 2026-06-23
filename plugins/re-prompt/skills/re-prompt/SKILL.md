@@ -95,10 +95,18 @@ Use these only when the user explicitly asks for Codex or Claude enhanced analys
 When summarizing a report for the user, include:
 
 - Respond in the user's language. If the user writes Korean, summarize in Korean.
+- Do not paste raw CLI output verbatim; explain it in beginner-friendly wording.
 - selected session id and confidence
 - main friction point
 - strongest turn evidence
 - best copy-pasteable next prompt
 - whether the report used heuristic mode, Codex, Claude, or fallback
+
+Use this glossary for `re-prompt go` output:
+
+- `Friction` = "꼬였을 가능성" in Korean, "review priority" in English.
+- `Turns` = "대화/작업 횟수" in Korean, "conversation length" in English.
+- `file_churn` = "파일을 여러 번 고치며 왕복함" in Korean, "repeated file edits" in English.
+- `heuristic-only` = "외부 AI 호출 없이 로컬 규칙으로 분석" in Korean, "local rules only, no external AI call" in English.
 
 Keep the summary short and practical.

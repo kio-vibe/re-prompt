@@ -74,7 +74,7 @@ describe("CLI commands", () => {
     });
 
     expect(result.exitCode).toBe(0);
-    expect(result.stdout).toBe("0.2.2");
+    expect(result.stdout).toBe("0.2.3");
   });
 
   it("prints doctor and scan output for a temp CODEX_HOME", async () => {
@@ -90,32 +90,76 @@ describe("CLI commands", () => {
     expect(scan.stdout).toContain("late_constraint");
   });
 
-  it("guides a first run with scan rows and next commands", async () => {
+  it("guides a first run with beginner-friendly English summary and next commands", async () => {
     const { codexHome } = await makeCodexHomeWithSession("late-constraint.jsonl");
 
-    const result = await runCli(["go", "--codex-home", codexHome, "--top", "3"]);
+    const result = await runCli(["go", "--codex-home", codexHome, "--top", "3", "--language", "en"]);
 
     expect(result.exitCode).toBe(0);
     expect(result.stdout).toContain("re-prompt go");
-    expect(result.stdout).toContain("found sessions: 1");
-    expect(result.stdout).toContain("Friction");
-    expect(result.stdout).toContain("late_constraint");
+    expect(result.stdout).toContain("Found 1 local Codex sessions.");
+    expect(result.stdout).toContain("Most worth reviewing");
+    expect(result.stdout).toContain("Review priority:");
+    expect(result.stdout).toContain("Important constraint arrived mid-session");
     expect(result.stdout).toContain("Next commands:");
     expect(result.stdout).toContain("re-prompt retro sess-late");
     expect(result.stdout).toContain("re-prompt last");
   });
 
+  it("guides a first run with Korean output when requested", async () => {
+    const { codexHome } = await makeCodexHomeWithSession("late-constraint.jsonl");
+
+    const result = await runCli(["go", "--codex-home", codexHome, "--top", "3", "--language", "ko"]);
+
+    expect(result.exitCode).toBe(0);
+    expect(result.stdout).toContain("최근 Codex 작업 기록 1개를 찾았습니다.");
+    expect(result.stdout).toContain("가장 먼저 회고해볼 작업");
+    expect(result.stdout).toContain("꼬였을 가능성:");
+    expect(result.stdout).toContain("중요한 조건이 작업 중간에 나옴");
+    expect(result.stdout).toContain("외부 AI 호출 없이 로컬 규칙으로 분석");
+    expect(result.stdout).toContain("re-prompt retro sess-late");
+  });
+
+  it("auto-selects Korean or English go output from locale environment", async () => {
+    const { codexHome } = await makeCodexHomeWithSession("late-constraint.jsonl");
+
+    const korean = await runCliWithEnv(["go", "--codex-home", codexHome, "--top", "3", "--language", "auto"], {
+      LANG: "ko_KR.UTF-8"
+    });
+    expect(korean.exitCode).toBe(0);
+    expect(korean.stdout).toContain("최근 Codex 작업 기록 1개를 찾았습니다.");
+
+    const english = await runCliWithEnv(["go", "--codex-home", codexHome, "--top", "3", "--language", "auto"], {
+      RE_PROMPT_LANG: "",
+      LC_ALL: "",
+      LC_MESSAGES: "",
+      LANG: "C"
+    });
+    expect(english.exitCode).toBe(0);
+    expect(english.stdout).toContain("Found 1 local Codex sessions.");
+  });
+
   it("can guide plugin users with slash-command next steps", async () => {
     const { codexHome } = await makeCodexHomeWithSession("late-constraint.jsonl");
 
-    const result = await runCli(["go", "--codex-home", codexHome, "--top", "3", "--next-style", "plugin"]);
+    const result = await runCli(["go", "--codex-home", codexHome, "--top", "3", "--next-style", "plugin", "--language", "ko"]);
 
     expect(result.exitCode).toBe(0);
-    expect(result.stdout).toContain("Next commands:");
+    expect(result.stdout).toContain("다음에 해볼 것:");
     expect(result.stdout).toContain("/re-prompt-retro sess-late");
     expect(result.stdout).toContain("/re-prompt-last");
     expect(result.stdout).toContain("/re-prompt-rules");
     expect(result.stdout).not.toContain("re-prompt retro sess-late");
+  });
+
+  it("rejects unsupported go output languages", async () => {
+    const { codexHome } = await makeCodexHomeWithSession("late-constraint.jsonl");
+
+    const result = await runCli(["go", "--codex-home", codexHome, "--language", "fr"]);
+
+    expect(result.exitCode).toBe(1);
+    expect(result.stderr).toContain('Unsupported language "fr"');
+    expect(result.stderr).toContain("Use auto, en, or ko");
   });
 
   it("rejects unsupported next command styles", async () => {
@@ -133,11 +177,18 @@ describe("CLI commands", () => {
     const installCommand = await readFile("plugins/re-prompt/commands/re-prompt-install.md", "utf8");
     const skill = await readFile("plugins/re-prompt/skills/re-prompt/SKILL.md", "utf8");
 
-    expect(goCommand).toContain("re-prompt go --next-style plugin");
+    expect(goCommand).toContain("re-prompt go --next-style plugin --language auto");
     expect(goCommand).toContain("/re-prompt-retro <session-id>");
+    expect(goCommand).toContain("Do not paste the raw CLI output back verbatim");
+    expect(goCommand).toContain("Friction");
+    expect(goCommand).toContain("꼬였을 가능성");
+    expect(goCommand).toContain("file_churn");
+    expect(goCommand).toContain("파일을 여러 번 고치며 왕복함");
     expect(installCommand).toContain("command -v re-prompt");
     expect(installCommand).toContain("Only inspect repository docs or plugin files if one of these checks fails");
     expect(skill).toContain("Respond in the user's language");
+    expect(skill).toContain("Do not paste raw CLI output verbatim");
+    expect(skill).toContain("local rules only, no external AI call");
     expect(skill).toContain("Do not ask the user to paste raw rollout JSONL");
   });
 
@@ -147,7 +198,7 @@ describe("CLI commands", () => {
     const result = await runCli(["go", "--codex-home", codexHome]);
 
     expect(result.exitCode).toBe(0);
-    expect(result.stdout).toContain("No Codex sessions found yet.");
+    expect(result.stdout).toContain("No local Codex session history was found yet.");
     expect(result.stdout).toContain("Run Codex on a coding task first");
     expect(result.stdout).toContain("re-prompt doctor");
   });

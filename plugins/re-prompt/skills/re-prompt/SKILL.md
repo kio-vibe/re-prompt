@@ -36,6 +36,8 @@ Use the local `re-prompt` CLI to help the user choose one stored Codex session, 
 
 - `re-prompt` reads local Codex stored sessions under `~/.codex/sessions`.
 - Do not ask the user to paste raw rollout JSONL, private code, secrets, or unredacted command output.
+- Do not directly read, grep, cat, parse, or inspect `~/.codex/sessions/**/*.jsonl`.
+- Do not use ad hoc Node/Python scripts to inspect stored rollout files.
 - Do not paste raw CLI output verbatim. Summarize it in beginner-friendly wording.
 - When rewriting, rewrite them in the user's own voice rather than generic AI prose.
 - Prefer short redacted excerpts from `re-prompt` output when discussing report quality.
@@ -51,13 +53,38 @@ Check whether the CLI exists:
 re-prompt --version
 ```
 
-If missing, say that the CLI is not installed and ask before running any install command. The current release tarball is:
+Minimum supported CLI version for this skill: `0.4.0`.
+
+If the command is missing, say that the CLI is not installed and ask before running any install command. The current release tarball is:
 
 ```bash
-npm install -g https://github.com/kio-vibe/re-prompt/releases/download/v0.4.0/re-prompt-0.4.0.tgz
+npm install -g https://github.com/kio-vibe/re-prompt/releases/download/v0.4.1/re-prompt-0.4.1.tgz
+```
+
+If `re-prompt --version` is older than `0.4.0`, do not run `re-prompt candidates`, `scan`, `go`, `coach`, `retro`, direct JSONL reads, or any fallback script. Tell the user briefly that the CLI is outdated and ask whether they want to update:
+
+```text
+re-prompt CLI가 오래됐습니다. 현재 버전은 <version>이고, /re-prompt에는 0.4.0 이상이 필요합니다. 아래 명령으로 0.4.1로 업데이트해도 될까요?
+```
+
+```bash
+npm install -g https://github.com/kio-vibe/re-prompt/releases/download/v0.4.1/re-prompt-0.4.1.tgz
 ```
 
 Do not install automatically from a natural-language request.
+
+## Safe Failure Behavior
+
+Candidate lists must come from `re-prompt candidates` only.
+
+If `re-prompt candidates` exits non-zero, do not fallback to `scan`, `go`, or manual transcript reading. Do not infer candidates from transcript paths. Stop and summarize the setup problem. Suggest checking:
+
+```bash
+re-prompt --version
+re-prompt doctor
+```
+
+Never open stored rollout files directly as a recovery path.
 
 ## Default Conversation Flow
 

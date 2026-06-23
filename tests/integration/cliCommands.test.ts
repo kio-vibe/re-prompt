@@ -74,7 +74,7 @@ describe("CLI commands", () => {
     });
 
     expect(result.exitCode).toBe(0);
-    expect(result.stdout).toBe("0.4.0");
+    expect(result.stdout).toBe("0.4.1");
   });
 
   it("prints doctor and scan output for a temp CODEX_HOME", async () => {
@@ -226,7 +226,12 @@ describe("CLI commands", () => {
     expect(skill).toContain("re-prompt coach <session-id> --engine codex --language auto");
     expect(skill).toContain("After coaching one candidate, suggest another candidate");
     expect(skill).toContain("Do not show internal fields such as scores");
-    expect(skill).toContain("v0.4.0/re-prompt-0.4.0.tgz");
+    expect(skill).toContain("Minimum supported CLI version for this skill: `0.4.0`");
+    expect(skill).toContain("v0.4.1/re-prompt-0.4.1.tgz");
+    expect(skill).toContain("Do not directly read, grep, cat, parse, or inspect `~/.codex/sessions/**/*.jsonl`");
+    expect(skill).toContain("Do not use ad hoc Node/Python scripts");
+    expect(skill).toContain("If `re-prompt candidates` exits non-zero");
+    expect(skill).toContain("do not fallback to `scan`, `go`, or manual transcript reading");
   });
 
   it("go handles an empty Codex home without failing", async () => {

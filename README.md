@@ -6,7 +6,20 @@ A Codex session prompt coach plugin and CLI.
 
 ## Install
 
-`re-prompt` is not published to npm yet. For dogfood, start with the Codex plugin:
+`re-prompt` is not published to npm yet. For dogfood, install or update the packaged CLI first:
+
+```bash
+npm install -g https://github.com/kio-vibe/re-prompt/releases/download/v0.4.1/re-prompt-0.4.1.tgz
+re-prompt --version
+```
+
+Expected version:
+
+```txt
+0.4.1
+```
+
+Then install the Codex plugin:
 
 ```bash
 git clone https://github.com/kio-vibe/re-prompt.git
@@ -24,6 +37,8 @@ Requirements:
 - access to `~/.codex/sessions` on your machine
 
 The plugin uses the `re-prompt` CLI under the hood. If the CLI is missing, `/re-prompt` will tell you the install command and ask before running anything.
+
+Plugin install, personal skill install, and global CLI install are separate steps. `scripts/install-personal-skill.sh` only makes `/re-prompt` easier to find in the Codex app; it does not install or update the global `re-prompt` CLI.
 
 ## Quick Start
 
@@ -86,7 +101,7 @@ re-prompt rules --since 30d
 
 ## Dogfood / Feedback
 
-`v0.4.0` is ready for Codex plugin dogfood, but it is not published to npm yet.
+`v0.4.1` is ready for Codex plugin dogfood, but it is not published to npm yet.
 
 The fastest path is in the [Codex plugin install guide](docs/install-codex-plugin.md).
 
@@ -114,7 +129,7 @@ Look for `re-prompt@re-prompt-local`, then open a new Codex thread or restart th
 bash scripts/install-personal-skill.sh
 ```
 
-This copies `plugins/re-prompt/skills/re-prompt/SKILL.md` to `$CODEX_HOME/skills/re-prompt/SKILL.md`. It also removes old re-prompt-owned command-specific shims such as `re-prompt-go` when they are detected. It does not upload transcripts, change Codex sessions, or install global packages.
+This copies `plugins/re-prompt/skills/re-prompt/SKILL.md` to `$CODEX_HOME/skills/re-prompt/SKILL.md`. It also removes old re-prompt-owned command-specific shims such as `re-prompt-go` when they are detected. It does not upload transcripts, change Codex sessions, install global packages, or update the global CLI.
 
 ## Commands
 
@@ -174,7 +189,7 @@ pnpm pack
 mkdir /tmp/re-prompt-install-test
 cd /tmp/re-prompt-install-test
 npm init -y
-npm install /path/to/re-prompt-0.4.0.tgz
+npm install /path/to/re-prompt-0.4.1.tgz
 npx re-prompt --version
 npx re-prompt doctor
 ```

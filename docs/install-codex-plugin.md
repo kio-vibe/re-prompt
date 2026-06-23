@@ -10,7 +10,22 @@ The plugin exposes one user-facing entry point:
 
 It still uses the local `re-prompt` CLI under the hood.
 
-## Install
+## Install Or Update The CLI First
+
+Plugin skill install and global CLI install are separate. The plugin calls the `re-prompt` executable on your machine; installing the plugin does not install or update that executable.
+
+```bash
+npm install -g https://github.com/kio-vibe/re-prompt/releases/download/v0.4.1/re-prompt-0.4.1.tgz
+re-prompt --version
+```
+
+Expected version:
+
+```txt
+0.4.1
+```
+
+## Install The Plugin
 
 Clone the repository and add its local plugin marketplace:
 
@@ -41,6 +56,8 @@ bash scripts/install-personal-skill.sh
 
 The shim installer copies `plugins/re-prompt/skills/re-prompt/SKILL.md` to `$CODEX_HOME/skills/re-prompt/SKILL.md`. It also removes old re-prompt-owned command-specific shims when detected. It does not upload transcripts, change Codex sessions, or install global packages.
 
+It also does not install or update the global `re-prompt` CLI. If `/re-prompt` says the CLI is outdated, rerun the release tarball install command above.
+
 To preview the install path without writing files:
 
 ```bash
@@ -56,6 +73,8 @@ In Codex, run:
 ```
 
 The skill checks whether the local CLI exists. If it is missing, it will show the install command and ask before running it.
+
+If the CLI is older than `0.4.0`, the skill should stop and ask you to update instead of trying to inspect Codex transcript files directly.
 
 When the CLI is available, `/re-prompt` shows a few recent Codex session candidates. Pick one by number, such as `1번` or `1`, and the plugin will run prompt coaching for that session.
 
@@ -78,3 +97,5 @@ re-prompt rules --since 30d
 Do not paste raw Codex rollout JSONL, private code, secrets, or unredacted command output into issues or chat.
 
 The plugin runs local `re-prompt` commands and summarizes the generated coach output. `coach --engine codex` and `coach --engine claude` receive a redacted PromptCoachBundle, not raw transcripts.
+
+The plugin should not read `~/.codex/sessions/**/*.jsonl` directly. If `re-prompt candidates` fails, treat it as a CLI setup/version problem and run `re-prompt --version` or `re-prompt doctor` instead of manually parsing transcripts.

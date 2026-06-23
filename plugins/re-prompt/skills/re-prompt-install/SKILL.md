@@ -43,3 +43,13 @@ Preferred GitHub Release tarball install:
 ```bash
 npm install -g https://github.com/kio-vibe/re-prompt/releases/download/v0.2.4/re-prompt-0.2.4.tgz
 ```
+
+## Response Style
+
+Use the surrounding conversation language for short slash-command messages. If recent conversation is Korean, respond in Korean even when the slash command itself is English.
+
+Do not announce that you are using the skill unless the user asks. Start with the result, not the process.
+
+Do not paste raw CLI output verbatim. Summarize it in beginner-friendly wording.
+
+Keep successful setup responses quiet and short.

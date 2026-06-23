@@ -176,6 +176,14 @@ describe("CLI commands", () => {
     const goCommand = await readFile("plugins/re-prompt/commands/re-prompt-go.md", "utf8");
     const installCommand = await readFile("plugins/re-prompt/commands/re-prompt-install.md", "utf8");
     const skill = await readFile("plugins/re-prompt/skills/re-prompt/SKILL.md", "utf8");
+    const slashSkillNames = [
+      "re-prompt",
+      "re-prompt-go",
+      "re-prompt-install",
+      "re-prompt-last",
+      "re-prompt-retro",
+      "re-prompt-rules"
+    ];
 
     expect(goCommand).toContain("re-prompt go --next-style plugin --language auto");
     expect(goCommand).toContain("/re-prompt-retro <session-id>");
@@ -190,6 +198,26 @@ describe("CLI commands", () => {
     expect(skill).toContain("Do not paste raw CLI output verbatim");
     expect(skill).toContain("local rules only, no external AI call");
     expect(skill).toContain("Do not ask the user to paste raw rollout JSONL");
+
+    for (const skillName of slashSkillNames) {
+      const slashSkill = await readFile(`plugins/re-prompt/skills/${skillName}/SKILL.md`, "utf8");
+      expect(slashSkill).toContain("surrounding conversation language");
+      expect(slashSkill).toContain("Do not announce that you are using the skill");
+      expect(slashSkill).toContain("Start with the result, not the process");
+      expect(slashSkill).toContain("Do not paste raw CLI output verbatim");
+      expect(slashSkill).toContain("Do not ask the user to paste raw rollout JSONL");
+    }
+
+    const goSkill = await readFile("plugins/re-prompt/skills/re-prompt-go/SKILL.md", "utf8");
+    expect(goSkill).toContain("the first session worth reviewing");
+    expect(goSkill).toContain("why that session is worth reviewing");
+    expect(goSkill).toContain("/re-prompt-retro <session-id>");
+
+    const retroSkill = await readFile("plugins/re-prompt/skills/re-prompt-retro/SKILL.md", "utf8");
+    expect(retroSkill).toContain("one-line judgment");
+    expect(retroSkill).toContain("a few cited turn evidence points");
+    expect(retroSkill).toContain("the better initial prompt");
+    expect(retroSkill).toContain("the most useful rescue prompt");
   });
 
   it("go handles an empty Codex home without failing", async () => {

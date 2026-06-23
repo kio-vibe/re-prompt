@@ -28,6 +28,7 @@ CODEX_HOME="${CODEX_HOME:-$HOME/.codex}"
 SOURCE="$ROOT/plugins/re-prompt/skills/re-prompt/SKILL.md"
 TARGET_DIR="$CODEX_HOME/skills/re-prompt"
 TARGET="$TARGET_DIR/SKILL.md"
+CLI_INSTALL_COMMAND="npm install -g https://github.com/kio-vibe/re-prompt/releases/download/v0.4.1/re-prompt-0.4.1.tgz"
 LEGACY_SKILLS=(
   "re-prompt-go"
   "re-prompt-install"
@@ -62,6 +63,8 @@ is_re_prompt_legacy_skill() {
 }
 
 echo "re-prompt personal skill install"
+echo "Note: this installs the Codex personal skill only. It does not install or update the global re-prompt CLI."
+echo "Install/update CLI with: $CLI_INSTALL_COMMAND"
 echo "Source: $SOURCE"
 echo "Target: $TARGET"
 

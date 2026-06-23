@@ -47,6 +47,8 @@ describe("personal skill installer", () => {
 
     expect(result.exitCode).toBe(0);
     expect(result.stdout).toContain("Dry run: no files written.");
+    expect(result.stdout).toContain("does not install or update the global re-prompt CLI");
+    expect(result.stdout).toContain("re-prompt-0.4.1.tgz");
     expect(result.stdout).toContain(`Target: ${join(codexHome, "skills", "re-prompt", "SKILL.md")}`);
     expect(result.stdout).toContain("Cleanup: remove legacy re-prompt-owned skill");
     expect(result.stdout).toContain("type /re-prompt");
@@ -71,6 +73,9 @@ describe("personal skill installer", () => {
     expect(installed).toContain("re-prompt candidates --format json --top 3 --language auto");
     expect(installed).toContain("map that number to the matching `sessionId`");
     expect(installed).toContain("Do not ask the user to paste raw rollout JSONL");
+    expect(installed).toContain("Minimum supported CLI version for this skill: `0.4.0`");
+    expect(installed).toContain("Do not directly read, grep, cat, parse, or inspect `~/.codex/sessions/**/*.jsonl`");
+    expect(installed).toContain("do not fallback to `scan`, `go`, or manual transcript reading");
 
     for (const skillName of legacySkillNames) {
       await expect(stat(join(codexHome, "skills", skillName, "SKILL.md"))).rejects.toThrow();

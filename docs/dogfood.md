@@ -4,9 +4,24 @@ This guide is for early testers trying `re-prompt` against their own local Codex
 
 The goal is not to collect raw transcripts. The goal is to learn whether one `/re-prompt` flow can help you pick a chat, see what went wrong in your own wording, and get a better prompt in your own voice.
 
-## Install the Codex Plugin
+## Install Or Update The CLI
 
-`re-prompt` is not published to npm yet. Install the local Codex plugin from a repository clone:
+`re-prompt` is not published to npm yet. Install or update the packaged CLI first:
+
+```bash
+npm install -g https://github.com/kio-vibe/re-prompt/releases/download/v0.4.1/re-prompt-0.4.1.tgz
+re-prompt --version
+```
+
+Expected version:
+
+```txt
+0.4.1
+```
+
+## Install The Codex Plugin
+
+Then install the local Codex plugin from a repository clone:
 
 ```bash
 git clone https://github.com/kio-vibe/re-prompt.git
@@ -30,6 +45,8 @@ pnpm install
 pnpm build
 node dist/cli.js --version
 ```
+
+The personal skill installer and plugin install do not install or update the global CLI. If `/re-prompt` says the CLI is outdated, rerun the release tarball install command above.
 
 ## Run
 

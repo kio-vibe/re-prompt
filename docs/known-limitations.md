@@ -1,6 +1,6 @@
 # Known Limitations
 
-`re-prompt v0.4.0` is an early dogfood release. It is useful for testing prompt coaching quality, but it is intentionally narrow.
+`re-prompt v0.4.1` is an early dogfood release. It is useful for testing prompt coaching quality, but it is intentionally narrow.
 
 ## Current scope
 
@@ -12,6 +12,7 @@
 - no telemetry
 - no npm package yet
 - explicit CLI install only; the plugin does not auto-install global packages
+- plugin skill install and global CLI install are separate
 - AGENTS.md suggestions are dry-run previews only
 
 ## Not included yet

@@ -41,4 +41,10 @@ re-prompt rules --since 30d
 
 ## Response Style
 
+Use the surrounding conversation language for short slash-command messages. If recent conversation is Korean, respond in Korean even when the slash command itself is English.
+
+Do not announce that you are using the skill unless the user asks. Start with the result, not the process.
+
+Do not paste raw CLI output verbatim. Summarize it in beginner-friendly wording.
+
 Summarize whether any durable rule was suggested. If no rule is suggested, explain that this is expected when evidence is one-off or too generic.

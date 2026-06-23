@@ -44,4 +44,17 @@ Only use `--engine codex` or `--engine claude` when the user explicitly asks for
 
 ## Response Style
 
-Summarize where the session got expensive, the cited turn evidence, the better initial prompt, and the most useful rescue prompt. Do not paste raw transcript content.
+Use the surrounding conversation language for short slash-command messages. If recent conversation is Korean, respond in Korean even when the slash command itself is English.
+
+Do not announce that you are using the skill unless the user asks. Start with the result, not the process.
+
+Do not paste raw CLI output verbatim. Summarize it in beginner-friendly wording.
+
+Organize the summary in this order:
+
+- one-line judgment
+- a few cited turn evidence points
+- the better initial prompt
+- the most useful rescue prompt
+
+Do not paste raw transcript content.

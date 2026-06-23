@@ -95,6 +95,9 @@ Use these only when the user explicitly asks for Codex or Claude enhanced analys
 When summarizing a report for the user, include:
 
 - Respond in the user's language. If the user writes Korean, summarize in Korean.
+- Use the surrounding conversation language for short slash-command messages. If recent conversation is Korean, respond in Korean even when the slash command itself is English.
+- Do not announce that you are using the skill unless the user asks.
+- Start with the result, not the process.
 - Do not paste raw CLI output verbatim; explain it in beginner-friendly wording.
 - selected session id and confidence
 - main friction point

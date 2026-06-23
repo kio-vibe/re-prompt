@@ -27,13 +27,13 @@ First confirm the plugin is enabled:
 codex plugin list
 ```
 
-Look for `re-prompt@re-prompt-local`, then open a new Codex thread or restart the Codex app. If the plugin is enabled but `/re-p` still does not show `re-prompt`, install the personal skill picker shim:
+Look for `re-prompt@re-prompt-local`, then open a new Codex thread or restart the Codex app. If the plugin is enabled but `/re-prompt-go` still does not show up, install the command-specific personal skill picker shims:
 
 ```bash
 bash scripts/install-personal-skill.sh
 ```
 
-The shim copies the existing plugin skill from `plugins/re-prompt/skills/re-prompt/SKILL.md` to `$CODEX_HOME/skills/re-prompt/SKILL.md`, so the composer can index it as a personal skill. It does not upload transcripts, change Codex sessions, or install global packages.
+The shim installer copies every plugin skill under `plugins/re-prompt/skills/*/SKILL.md` to `$CODEX_HOME/skills/<skill-name>/SKILL.md`, so the composer can index `/re-prompt-go`, `/re-prompt-last`, `/re-prompt-retro`, `/re-prompt-rules`, and `/re-prompt-install` as personal skills. It does not upload transcripts, change Codex sessions, or install global packages.
 
 To preview the install path without writing files:
 

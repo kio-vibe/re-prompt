@@ -5,7 +5,7 @@
 If you prefer the plugin-first flow, start with [install the Codex plugin](install-codex-plugin.md).
 
 ```bash
-npm install -g https://github.com/kio-vibe/re-prompt/releases/download/v0.2.3/re-prompt-0.2.3.tgz
+npm install -g https://github.com/kio-vibe/re-prompt/releases/download/v0.2.4/re-prompt-0.2.4.tgz
 re-prompt --version
 re-prompt go
 ```
@@ -13,7 +13,7 @@ re-prompt go
 Expected version:
 
 ```txt
-0.2.3
+0.2.4
 ```
 
 ## First run

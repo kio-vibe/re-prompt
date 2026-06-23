@@ -25,37 +25,61 @@ fi
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 CODEX_HOME="${CODEX_HOME:-$HOME/.codex}"
-SOURCE="$ROOT/plugins/re-prompt/skills/re-prompt/SKILL.md"
-TARGET_DIR="$CODEX_HOME/skills/re-prompt"
-TARGET="$TARGET_DIR/SKILL.md"
+SOURCE_ROOT="$ROOT/plugins/re-prompt/skills"
 
-if [ ! -f "$SOURCE" ]; then
-  echo "Source skill not found: $SOURCE" >&2
+if [ ! -d "$SOURCE_ROOT" ]; then
+  echo "Source skill directory not found: $SOURCE_ROOT" >&2
   exit 1
 fi
 
-if ! grep -q '^name: re-prompt$' "$SOURCE"; then
-  echo "Source skill is missing expected frontmatter: name: re-prompt" >&2
+SOURCES=()
+while IFS= read -r source; do
+  SOURCES+=("$source")
+done < <(find "$SOURCE_ROOT" -mindepth 2 -maxdepth 2 -name SKILL.md | sort)
+
+if [ "${#SOURCES[@]}" -eq 0 ]; then
+  echo "No source skills found under: $SOURCE_ROOT" >&2
   exit 1
 fi
 
-if ! grep -q '^description:' "$SOURCE"; then
-  echo "Source skill is missing a description frontmatter field." >&2
-  exit 1
-fi
+validate_skill() {
+  local source="$1"
+  local skill_name="$2"
+
+  if ! grep -q "^name: $skill_name$" "$source"; then
+    echo "Source skill is missing expected frontmatter: name: $skill_name" >&2
+    exit 1
+  fi
+
+  if ! grep -q '^description:' "$source"; then
+    echo "Source skill is missing a description frontmatter field: $source" >&2
+    exit 1
+  fi
+}
 
 echo "re-prompt personal skill install"
-echo "Source: $SOURCE"
-echo "Target: $TARGET"
+
+for source in "${SOURCES[@]}"; do
+  skill_name="$(basename "$(dirname "$source")")"
+  target="$CODEX_HOME/skills/$skill_name/SKILL.md"
+  validate_skill "$source" "$skill_name"
+  echo "Source: $source"
+  echo "Target: $target"
+done
 
 if [ "$DRY_RUN" = true ]; then
   echo "Dry run: no files written."
-  echo "After install, open a new Codex thread or restart Codex, then type /re-p."
+  echo "After install, open a new Codex thread or restart Codex, then type /re-prompt-go."
   exit 0
 fi
 
-mkdir -p "$TARGET_DIR"
-cp "$SOURCE" "$TARGET"
+for source in "${SOURCES[@]}"; do
+  skill_name="$(basename "$(dirname "$source")")"
+  target_dir="$CODEX_HOME/skills/$skill_name"
+  target="$target_dir/SKILL.md"
+  mkdir -p "$target_dir"
+  cp "$source" "$target"
+done
 
-echo "Installed personal skill shim."
-echo "Open a new Codex thread or restart Codex, then type /re-p."
+echo "Installed ${#SOURCES[@]} personal skill shims."
+echo "Open a new Codex thread or restart Codex, then type /re-prompt-go."

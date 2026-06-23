@@ -8,13 +8,22 @@ import { execa } from "execa";
 import { ClaudeCliAnalyzer, CodexCliAnalyzer } from "./analyzers/cliAnalyzer.js";
 import { assertHeuristicOnlyEngine, parseEngine, type Engine } from "./analyzers/engine.js";
 import { HeuristicOnlyAnalyzer } from "./analyzers/heuristicOnlyAnalyzer.js";
+import {
+  buildFallbackPromptCoachReport,
+  ClaudePromptCoachAnalyzer,
+  CodexPromptCoachAnalyzer,
+  lintPromptCoachReport,
+  withCoachAnalysis
+} from "./analyzers/promptCoachAnalyzer.js";
+import { buildPromptCoachBundle } from "./core/coach/buildPromptCoachBundle.js";
 import { buildEvidenceBundle } from "./core/evidence/buildEvidenceBundle.js";
 import { redactValue } from "./core/privacy/redact.js";
 import { lintRetroReport } from "./core/reportQuality.js";
 import { computeFrictionScore } from "./core/scoring/frictionScore.js";
 import { extractSignals } from "./core/signals/index.js";
-import type { EvidenceBundle, NormalizedSession, RetroReport, SessionSignal } from "./core/types.js";
+import type { EvidenceBundle, NormalizedSession, PromptCoachBundle, PromptCoachReport, RetroReport, SessionSignal } from "./core/types.js";
 import { renderMarkdownReport } from "./renderers/markdownRenderer.js";
+import { renderPromptCoachReport } from "./renderers/promptCoachRenderer.js";
 import { generateAgentsMdPatch } from "./rules/agentsMdPatch.js";
 import {
   defaultCodexHome,
@@ -46,11 +55,18 @@ interface AnalyzeResult {
   report: RetroReport;
 }
 
+interface CoachResult {
+  session: NormalizedSession;
+  signals: SessionSignal[];
+  bundle: PromptCoachBundle;
+  report: PromptCoachReport;
+}
+
 export function createProgram(): Command {
   const program = new Command()
     .name("re-prompt")
-    .description("A local-first Codex session postmortem CLI.")
-    .version("0.2.4");
+    .description("A local-first Codex session prompt coach.")
+    .version("0.3.0");
 
   program
     .command("doctor")
@@ -97,6 +113,24 @@ export function createProgram(): Command {
         codexHome: options.codexHome,
         repo: options.repo,
         format: options.format
+      });
+    });
+
+  program
+    .command("coach [session-id-or-path]")
+    .description("Coach a prompt from a Codex session in the user's own voice.")
+    .option("--engine <engine>", "Analysis engine: codex, claude, or none", "codex")
+    .option("--language <language>", "Output language: auto, en, or ko", "auto")
+    .option("--format <format>", "md or json", "md")
+    .option("--codex-home <path>", "Override CODEX_HOME")
+    .option("--repo <path>", "Filter latest session by repo/cwd")
+    .action(async (reference, options) => {
+      await coachCommand(reference, {
+        engine: parseEngine(options.engine),
+        language: parseGoLanguage(options.language),
+        format: parseFormat(options.format),
+        codexHome: options.codexHome,
+        repo: options.repo
       });
     });
 
@@ -189,7 +223,7 @@ async function doctorCommand(options: { codexHome?: string }): Promise<void> {
   }
   console.log(formatCheck(existsSync(resolve(process.cwd(), "AGENTS.md")), `repo AGENTS.md: ${resolve(process.cwd(), "AGENTS.md")}`));
   console.log("");
-  console.log("analyzer: heuristic-only by default; optional codex/claude for retro and last");
+  console.log("coach: codex by default; scan/go/rules use local heuristic triage");
 }
 
 async function goCommand(options: {
@@ -269,12 +303,12 @@ function printGoNoSessions(language: GoLanguage, codexHome: string, sessionsDir:
 function printGoNoRecentRows(language: GoLanguage, since: string): void {
   if (language === "ko") {
     console.log(`최근 범위(--since ${since})에서 회고할 Codex 작업을 찾지 못했습니다.`);
-    console.log("더 넓게 보려면 `re-prompt scan --since 90d`를 실행하거나, 최근 작업은 `re-prompt last`로 확인하세요.");
+    console.log("더 넓게 보려면 `re-prompt scan --since 90d`를 실행하거나, 최근 작업은 `re-prompt coach`로 확인하세요.");
     return;
   }
 
   console.log(`No recent Codex sessions matched --since ${since}.`);
-  console.log("Try `re-prompt scan --since 90d` or `re-prompt last`.");
+  console.log("Try `re-prompt scan --since 90d` or `re-prompt coach`.");
 }
 
 function printGoSummary(options: {
@@ -291,13 +325,13 @@ function printGoSummary(options: {
   const top = options.rows[0]!;
   if (options.language === "ko") {
     console.log(`최근 Codex 작업 기록 ${options.sessionsCount}개를 찾았습니다.`);
-    console.log(`최근 ${options.since} 기준으로 가장 먼저 회고해볼 작업입니다.`);
+    console.log(`최근 ${options.since} 기준으로 대략 먼저 봐도 좋을 작업입니다.`);
     console.log("");
     console.log("- 작업 ID: " + top.sessionId);
     console.log(`- 꼬였을 가능성: ${goPriorityLabel(top.score, "ko")} (${top.score}/100)`);
     console.log(`- 대화/작업 횟수: ${top.turns}`);
     console.log(`- 주요 패턴: ${goIssueLabel(top.mainIssue, "ko")}`);
-    console.log("- 분석 방식: 외부 AI 호출 없이 로컬 규칙으로 분석");
+    console.log("- 선별 방식: 빠른 로컬 규칙으로 후보만 고름");
     printGoOtherRows(options.rows, "ko");
     printGoLargestWarning(options.largest, options.maxTranscriptBytes, "ko");
     console.log("");
@@ -311,13 +345,13 @@ function printGoSummary(options: {
   }
 
   console.log(`Found ${options.sessionsCount} local Codex sessions.`);
-  console.log(`Most worth reviewing from the last ${options.since}:`);
+  console.log(`A rough first session to inspect from the last ${options.since}:`);
   console.log("");
   console.log("- Session: " + top.sessionId);
   console.log(`- Review priority: ${goPriorityLabel(top.score, "en")} (${top.score}/100)`);
   console.log(`- Conversation length: ${top.turns} turns`);
   console.log(`- Main pattern: ${goIssueLabel(top.mainIssue, "en")}`);
-  console.log("- Analysis mode: Local rules only, no external AI call");
+  console.log("- Triage mode: local rules only for candidate selection");
   printGoOtherRows(options.rows, "en");
   printGoLargestWarning(options.largest, options.maxTranscriptBytes, "en");
   console.log("");
@@ -377,13 +411,13 @@ function printGoNextCommands(sessionId: string, nextStyle: NextStyle, language: 
   }
 
   if (language === "ko") {
-    console.log(`- 이 작업 자세히 보기: re-prompt retro ${sessionId}`);
-    console.log("- 가장 최근 작업 빠르게 보기: re-prompt last");
+    console.log(`- 이 작업을 prompt coach로 보기: re-prompt coach ${sessionId}`);
+    console.log("- 가장 최근 작업을 prompt coach로 보기: re-prompt coach");
     console.log("- 반복 패턴을 AGENTS.md 규칙 후보로 보기: re-prompt rules --since 30d");
     return;
   }
-  console.log(`- Review this session: re-prompt retro ${sessionId}`);
-  console.log("- Quick latest-session report: re-prompt last");
+  console.log(`- Coach this session: re-prompt coach ${sessionId}`);
+  console.log("- Coach the latest session: re-prompt coach");
   console.log("- Preview durable repo rules: re-prompt rules --since 30d");
 }
 
@@ -496,6 +530,63 @@ async function retroCommand(path: string, options: { engine: Engine; format: For
   printReport(result.report, options.format);
 }
 
+async function coachCommand(
+  reference: string | undefined,
+  options: {
+    engine: Engine;
+    language: GoLanguageOption;
+    format: Format;
+    codexHome?: string;
+    repo?: string;
+  }
+): Promise<void> {
+  const language = resolveGoLanguage(options.language);
+  if (reference) {
+    const candidate = await resolveSessionReference(reference, { codexHome: options.codexHome });
+    const result = await analyzeCoachSession(candidate.transcriptPath, { engine: options.engine, language });
+    printCoachReport(result.report, options.format);
+    return;
+  }
+
+  const sessions = await locateCodexSessions({ codexHome: options.codexHome, repoPath: options.repo });
+  if (sessions.length === 0) {
+    throw new Error("No Codex sessions found. Run `re-prompt doctor` for diagnostics.");
+  }
+
+  const skipped = { tooLarge: 0, parseFailed: 0, other: 0 };
+  const maxTranscriptBytes = getMaxTranscriptBytes();
+  for (const candidate of sessions) {
+    if (candidate.sizeBytes > maxTranscriptBytes) {
+      skipped.tooLarge += 1;
+      continue;
+    }
+    try {
+      const result = await analyzeCoachSession(candidate.transcriptPath, { engine: options.engine, language });
+      printCoachReport(result.report, options.format);
+      return;
+    } catch (error) {
+      if (error instanceof SyntaxError) {
+        skipped.parseFailed += 1;
+      } else {
+        skipped.other += 1;
+      }
+    }
+  }
+
+  throw new Error(
+    `No analyzable Codex sessions found. Skipped newer sessions: ${skipped.tooLarge} too_large, ${skipped.parseFailed} parse_failed, ${skipped.other} other.`
+  );
+}
+
+function printCoachReport(report: PromptCoachReport, format: Format): void {
+  const redacted = redactValue(report).value;
+  if (format === "json") {
+    console.log(JSON.stringify(redacted, null, 2));
+    return;
+  }
+  console.log(renderPromptCoachReport(redacted));
+}
+
 function printReport(report: RetroReport, format: Format): void {
   const redacted = redactValue(report).value;
   if (format === "json") {
@@ -586,6 +677,26 @@ async function analyzeSession(path: string, engine: Engine): Promise<AnalyzeResu
   return { session, signals, bundle: redactedBundle, report };
 }
 
+async function analyzeCoachSession(
+  path: string,
+  options: { engine: Engine; language: GoLanguage }
+): Promise<CoachResult> {
+  const session = await loadNormalizedSession(path);
+  const signals = extractSignals(session);
+  const evidenceBundle = buildEvidenceBundle(session, signals);
+  const coachBundle = buildPromptCoachBundle(session, evidenceBundle, { language: options.language });
+  const redacted = redactValue(coachBundle);
+  const redactedBundle = {
+    ...redacted.value,
+    privacy: {
+      redactionApplied: redacted.redactionCount > 0,
+      redactionCount: redacted.redactionCount
+    }
+  };
+  const report = await analyzeCoachBundle(redactedBundle, options.engine, options.language);
+  return { session, signals, bundle: redactedBundle, report };
+}
+
 async function analyzeBundle(bundle: EvidenceBundle, engine: Engine): Promise<RetroReport> {
   const heuristicAnalyzer = new HeuristicOnlyAnalyzer();
   if (engine === "none") {
@@ -606,6 +717,33 @@ async function analyzeBundle(bundle: EvidenceBundle, engine: Engine): Promise<Re
     return withAnalysis(report, {
       requestedEngine: engine,
       usedEngine: "none",
+      fallback: true,
+      fallbackReason: error instanceof Error ? error.message : String(error)
+    });
+  }
+}
+
+async function analyzeCoachBundle(
+  bundle: PromptCoachBundle,
+  engine: Engine,
+  language: GoLanguage
+): Promise<PromptCoachReport> {
+  if (engine === "none") {
+    return buildFallbackPromptCoachReport(bundle, { engine, language, fallback: false });
+  }
+
+  try {
+    const analyzer = engine === "codex" ? new CodexPromptCoachAnalyzer() : new ClaudePromptCoachAnalyzer();
+    const report = await analyzer.analyze(bundle, { engine, language });
+    const issues = lintPromptCoachReport(report, bundle);
+    if (issues.length > 0) {
+      throw new Error(`Coach report failed quality checks: ${issues.join(", ")}`);
+    }
+    return withCoachAnalysis(report, { requestedEngine: engine, usedEngine: engine, fallback: false });
+  } catch (error) {
+    return buildFallbackPromptCoachReport(bundle, {
+      engine,
+      language,
       fallback: true,
       fallbackReason: error instanceof Error ? error.message : String(error)
     });

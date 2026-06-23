@@ -11,6 +11,6 @@ export function parseEngine(engine: string): Engine {
 
 export function assertHeuristicOnlyEngine(engine: string, command: string): asserts engine is "none" {
   if (engine !== "none") {
-    throw new Error(`${command} is heuristic-only. Use --engine none, or run retro/last with --engine ${engine}.`);
+  throw new Error(`${command} is heuristic-only. Use --engine none, or run coach/retro/last with --engine ${engine}.`);
   }
 }

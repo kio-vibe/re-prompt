@@ -30,17 +30,11 @@ re-prompt go --next-style plugin --language auto
 
 Do not paste the raw CLI output back verbatim. Summarize it in the user's language with beginner-friendly wording.
 
-Use this glossary when translating CLI terms:
-
-- `Friction` means "꼬였을 가능성" in Korean and "review priority" in English.
-- `Turns` means "대화/작업 횟수" in Korean and "conversation length" in English.
-- `file_churn` means "파일을 여러 번 고치며 왕복함" in Korean and "repeated file edits" in English.
-- `heuristic-only` means "외부 AI 호출 없이 로컬 규칙으로 분석" in Korean and "local rules only, no external AI call" in English.
-
 Summarize:
 
 - whether Codex sessions were found
-- the top session worth reviewing, using easy language rather than internal scoring jargon
+- the rough top candidate, using easy language rather than internal scoring jargon
+- that `/re-prompt-go` is only local triage, not the final coach judgment
 - the exact `/re-prompt-retro <session-id>` slash command suggested by the CLI
 - `/re-prompt-last` and `/re-prompt-rules` as secondary next steps
 

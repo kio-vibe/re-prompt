@@ -14,7 +14,7 @@ metadata:
 
 # re-prompt-go
 
-Start the guided local re-prompt flow.
+Start the guided local re-prompt flow. This is only rough local triage; the actual prompt coaching happens in `/re-prompt-retro`.
 
 ## Product Boundary
 
@@ -48,15 +48,10 @@ Do not paste raw CLI output verbatim. Summarize it in beginner-friendly wording.
 
 Organize the summary around:
 
-- the first session worth reviewing
-- why that session is worth reviewing
+- the first rough candidate worth inspecting
+- why that session is only a candidate, not a final judgment
 - the exact next command
 
-Use this glossary:
-
-- `Friction` = "꼬였을 가능성" in Korean, "review priority" in English.
-- `Turns` = "대화/작업 횟수" in Korean, "conversation length" in English.
-- `file_churn` = "파일을 여러 번 고치며 왕복함" in Korean, "repeated file edits" in English.
-- `heuristic-only` = "외부 AI 호출 없이 로컬 규칙으로 분석" in Korean, "local rules only, no external AI call" in English.
+Avoid internal scoring jargon such as `Friction`, `file_churn`, `heuristic-only`, or `Main cause`.
 
 Include the exact `/re-prompt-retro <session-id>` next command when one is suggested.

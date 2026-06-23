@@ -14,7 +14,7 @@ metadata:
 
 # re-prompt-retro
 
-Analyze a specific Codex session by id or transcript path.
+Coach a specific Codex session prompt by id or transcript path.
 
 ## Product Boundary
 
@@ -35,12 +35,12 @@ If missing, direct the user to `/re-prompt-install`. Do not install automaticall
 If the user provided a session id or transcript path, run:
 
 ```bash
-re-prompt retro <session-id-or-path>
+re-prompt coach <session-id-or-path> --engine codex --language auto
 ```
 
 If no session id/path is provided, run `re-prompt scan --since 30d` and ask which `Session` value to analyze.
 
-Only use `--engine codex` or `--engine claude` when the user explicitly asks for enhanced analysis.
+Only use `--engine claude` when the user explicitly asks for Claude. Use `re-prompt retro <session-id-or-path>` only when the user asks for the detailed forensic report.
 
 ## Response Style
 
@@ -52,9 +52,9 @@ Do not paste raw CLI output verbatim. Summarize it in beginner-friendly wording.
 
 Organize the summary in this order:
 
-- one-line judgment
-- a few cited turn evidence points
-- the better initial prompt
-- the most useful rescue prompt
+- what the user actually wrote
+- where that wording got in the way
+- the rewrite in the user's own voice
+- the one rescue line they can use next time
 
 Do not paste raw transcript content.

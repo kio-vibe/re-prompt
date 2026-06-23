@@ -255,6 +255,42 @@ export interface EvidenceBundle {
   };
 }
 
+export interface PromptCoachBundle {
+  product: "re-prompt";
+  bundleVersion: 1;
+  session: {
+    source: "codex";
+    sessionId: string;
+    transcriptPath: string;
+    cwd?: string;
+    repoRoot?: string;
+    startedAt?: string;
+    turnCount: number;
+  };
+  language: "auto" | "en" | "ko";
+  userMessages: {
+    turnIndex: number;
+    kind: "initial" | "follow_up" | "correction" | "late_constraint" | "rescue_worthy";
+    text: string;
+    whyIncluded: string;
+  }[];
+  evidence: {
+    signals: SessionSignal[];
+    anchors: EvidenceAnchor[];
+    changedFiles: string[];
+    repeatedFiles: string[];
+    observedTestCommands: string[];
+    failedCommands: string[];
+    lateConstraints: string[];
+    userCorrections: string[];
+    uncertainty: EvidenceBundle["uncertainty"];
+  };
+  privacy: {
+    redactionApplied: boolean;
+    redactionCount: number;
+  };
+}
+
 export interface RetroReport {
   schemaVersion: 1;
   analysis?: {
@@ -317,6 +353,31 @@ export interface RetroReport {
     rules: string[];
   };
   nextSessionChecklist: string[];
+  limitations: string[];
+}
+
+export interface PromptCoachReport {
+  schemaVersion: 1;
+  analysis?: {
+    requestedEngine: Engine;
+    usedEngine: Engine;
+    fallback: boolean;
+    fallbackReason?: string;
+  };
+  session: {
+    source: "codex";
+    sessionId: string;
+    title: string;
+    confidence: "low" | "medium" | "high";
+  };
+  language: "en" | "ko";
+  oneLineTake: string;
+  whatYouActuallyWrote: string;
+  whereItWentWrong: string;
+  rewriteInYourVoice: string;
+  whyThisWorks: string;
+  rescueLine: string;
+  confidence: "low" | "medium" | "high";
   limitations: string[];
 }
 

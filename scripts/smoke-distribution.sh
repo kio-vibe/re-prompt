@@ -64,19 +64,19 @@ if ! printf '%s\n' "$GO_OUTPUT" | grep -q 're-prompt go'; then
   exit 1
 fi
 
-echo "==> Checking latest analyzable session"
+echo "==> Checking latest coach fallback"
 set +e
-LAST_OUTPUT="$(npx re-prompt last 2>&1)"
-LAST_EXIT=$?
+COACH_OUTPUT="$(npx re-prompt coach --engine none 2>&1)"
+COACH_EXIT=$?
 set -e
 
-if [ "$LAST_EXIT" -eq 0 ]; then
-  printf '%s\n' "$LAST_OUTPUT"
-elif printf '%s\n' "$LAST_OUTPUT" | grep -Eiq 'No Codex sessions found|No analyzable Codex sessions found'; then
-  printf 'warning: skipping last smoke because no analyzable local Codex sessions were found.\n' >&2
+if [ "$COACH_EXIT" -eq 0 ]; then
+  printf '%s\n' "$COACH_OUTPUT"
+elif printf '%s\n' "$COACH_OUTPUT" | grep -Eiq 'No Codex sessions found|No analyzable Codex sessions found'; then
+  printf 'warning: skipping coach smoke because no analyzable local Codex sessions were found.\n' >&2
 else
-  printf '%s\n' "$LAST_OUTPUT" >&2
-  exit "$LAST_EXIT"
+  printf '%s\n' "$COACH_OUTPUT" >&2
+  exit "$COACH_EXIT"
 fi
 
 echo "==> Distribution smoke passed"

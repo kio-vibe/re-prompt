@@ -4,7 +4,7 @@ import { tmpdir } from "node:os";
 import { randomUUID } from "node:crypto";
 import { execa } from "execa";
 import { fixturePath } from "../helpers.js";
-import type { RetroReport } from "../../src/core/types.js";
+import type { PromptCoachReport, RetroReport } from "../../src/core/types.js";
 
 async function makeCodexHomeWithSession(fixtureName: string): Promise<{ codexHome: string; sessionPath: string }> {
   const codexHome = await mkdtemp(join(tmpdir(), "re-prompt-cli-codex-"));
@@ -74,7 +74,7 @@ describe("CLI commands", () => {
     });
 
     expect(result.exitCode).toBe(0);
-    expect(result.stdout).toBe("0.2.4");
+    expect(result.stdout).toBe("0.3.0");
   });
 
   it("prints doctor and scan output for a temp CODEX_HOME", async () => {
@@ -98,12 +98,12 @@ describe("CLI commands", () => {
     expect(result.exitCode).toBe(0);
     expect(result.stdout).toContain("re-prompt go");
     expect(result.stdout).toContain("Found 1 local Codex sessions.");
-    expect(result.stdout).toContain("Most worth reviewing");
+    expect(result.stdout).toContain("A rough first session to inspect");
     expect(result.stdout).toContain("Review priority:");
     expect(result.stdout).toContain("Important constraint arrived mid-session");
     expect(result.stdout).toContain("Next commands:");
-    expect(result.stdout).toContain("re-prompt retro sess-late");
-    expect(result.stdout).toContain("re-prompt last");
+    expect(result.stdout).toContain("re-prompt coach sess-late");
+    expect(result.stdout).toContain("re-prompt coach");
   });
 
   it("guides a first run with Korean output when requested", async () => {
@@ -113,11 +113,11 @@ describe("CLI commands", () => {
 
     expect(result.exitCode).toBe(0);
     expect(result.stdout).toContain("최근 Codex 작업 기록 1개를 찾았습니다.");
-    expect(result.stdout).toContain("가장 먼저 회고해볼 작업");
+    expect(result.stdout).toContain("대략 먼저 봐도 좋을 작업");
     expect(result.stdout).toContain("꼬였을 가능성:");
     expect(result.stdout).toContain("중요한 조건이 작업 중간에 나옴");
-    expect(result.stdout).toContain("외부 AI 호출 없이 로컬 규칙으로 분석");
-    expect(result.stdout).toContain("re-prompt retro sess-late");
+    expect(result.stdout).toContain("빠른 로컬 규칙으로 후보만 고름");
+    expect(result.stdout).toContain("re-prompt coach sess-late");
   });
 
   it("auto-selects Korean or English go output from locale environment", async () => {
@@ -149,7 +149,7 @@ describe("CLI commands", () => {
     expect(result.stdout).toContain("/re-prompt-retro sess-late");
     expect(result.stdout).toContain("/re-prompt-last");
     expect(result.stdout).toContain("/re-prompt-rules");
-    expect(result.stdout).not.toContain("re-prompt retro sess-late");
+    expect(result.stdout).not.toContain("re-prompt coach sess-late");
   });
 
   it("rejects unsupported go output languages", async () => {
@@ -188,15 +188,16 @@ describe("CLI commands", () => {
     expect(goCommand).toContain("re-prompt go --next-style plugin --language auto");
     expect(goCommand).toContain("/re-prompt-retro <session-id>");
     expect(goCommand).toContain("Do not paste the raw CLI output back verbatim");
-    expect(goCommand).toContain("Friction");
-    expect(goCommand).toContain("꼬였을 가능성");
-    expect(goCommand).toContain("file_churn");
-    expect(goCommand).toContain("파일을 여러 번 고치며 왕복함");
+    expect(goCommand).toContain("rough top candidate");
+    expect(goCommand).toContain("only local triage");
     expect(installCommand).toContain("command -v re-prompt");
     expect(installCommand).toContain("Only inspect repository docs or plugin files if one of these checks fails");
+    expect(installCommand).toContain("0.3.0");
+    expect(installCommand).toContain("re-prompt-0.3.0.tgz");
     expect(skill).toContain("Respond in the user's language");
     expect(skill).toContain("Do not paste raw CLI output verbatim");
-    expect(skill).toContain("local rules only, no external AI call");
+    expect(skill).toContain("rewrite them in the user's own voice");
+    expect(skill).toContain("Avoid internal scoring jargon");
     expect(skill).toContain("Do not ask the user to paste raw rollout JSONL");
 
     for (const skillName of slashSkillNames) {
@@ -209,15 +210,18 @@ describe("CLI commands", () => {
     }
 
     const goSkill = await readFile("plugins/re-prompt/skills/re-prompt-go/SKILL.md", "utf8");
-    expect(goSkill).toContain("the first session worth reviewing");
-    expect(goSkill).toContain("why that session is worth reviewing");
+    expect(goSkill).toContain("the first rough candidate worth inspecting");
+    expect(goSkill).toContain("only a candidate, not a final judgment");
     expect(goSkill).toContain("/re-prompt-retro <session-id>");
 
     const retroSkill = await readFile("plugins/re-prompt/skills/re-prompt-retro/SKILL.md", "utf8");
-    expect(retroSkill).toContain("one-line judgment");
-    expect(retroSkill).toContain("a few cited turn evidence points");
-    expect(retroSkill).toContain("the better initial prompt");
-    expect(retroSkill).toContain("the most useful rescue prompt");
+    expect(retroSkill).toContain("re-prompt coach <session-id-or-path> --engine codex --language auto");
+    expect(retroSkill).toContain("the rewrite in the user's own voice");
+
+    const retroCommand = await readFile("plugins/re-prompt/commands/re-prompt-retro.md", "utf8");
+    const lastCommand = await readFile("plugins/re-prompt/commands/re-prompt-last.md", "utf8");
+    expect(retroCommand).toContain("re-prompt coach <session-id-or-path> --engine codex --language auto");
+    expect(lastCommand).toContain("re-prompt coach --engine codex --language auto");
   });
 
   it("go handles an empty Codex home without failing", async () => {
@@ -242,6 +246,75 @@ describe("CLI commands", () => {
     const inspect = await runCli(["inspect", sessionPath, "--format", "json"]);
     expect(inspect.exitCode).toBe(0);
     expect(JSON.parse(inspect.stdout)).toMatchObject({ sessionId: "sess-late" });
+  });
+
+  it("invokes codex analyzer with a redacted prompt coach bundle", async () => {
+    const { sessionPath } = await makeCodexHomeWithSession("plan-followups-not-late-constraint.jsonl");
+    const fakeCodex = await makeFakeAnalyzerBinary("codex");
+    const argsFile = join(tmpdir(), `re-prompt-coach-codex-args-${randomUUID()}.json`);
+    const stdinFile = join(tmpdir(), `re-prompt-coach-codex-stdin-${randomUUID()}.txt`);
+
+    const result = await runCliWithEnv(["coach", sessionPath, "--engine", "codex", "--language", "ko"], {
+      RE_PROMPT_CODEX_BIN: fakeCodex,
+      FAKE_ANALYZER_ARGS_FILE: argsFile,
+      FAKE_ANALYZER_STDIN_FILE: stdinFile,
+      FAKE_ANALYZER_REPORT: JSON.stringify(coachReport("codex"))
+    });
+
+    expect(result.exitCode).toBe(0);
+    expect(result.stdout).toContain("# re-prompt coach");
+    expect(result.stdout).toContain("분석: requested codex, used codex");
+    expect(result.stdout).toContain("네 말투로 고치면 이렇게예요");
+    const args = JSON.parse(await readFile(argsFile, "utf8")) as string[];
+    expect(args).toEqual(expect.arrayContaining(["exec", "--ephemeral", "--ignore-user-config", "--ignore-rules", "--output-schema"]));
+    const stdin = await readFile(stdinFile, "utf8");
+    expect(stdin).toContain("RE_PROMPT_INTERNAL_ANALYSIS");
+    expect(stdin).toContain("Redacted PromptCoachBundle JSON");
+    expect(stdin).toContain("Bootstrap the CLI project");
+    expect(stdin).not.toContain("Redacted EvidenceBundle JSON");
+    expect(stdin).not.toContain("I will implement this new plan");
+    expect(stdin).not.toContain("encrypted_content");
+  });
+
+  it("invokes claude analyzer for coach and falls back on malformed coach output", async () => {
+    const { sessionPath } = await makeCodexHomeWithSession("plan-followups-not-late-constraint.jsonl");
+    const fakeClaude = await makeFakeAnalyzerBinary("claude");
+    const argsFile = join(tmpdir(), `re-prompt-coach-claude-args-${randomUUID()}.json`);
+    const stdinFile = join(tmpdir(), `re-prompt-coach-claude-stdin-${randomUUID()}.txt`);
+
+    const result = await runCliWithEnv(["coach", sessionPath, "--engine", "claude", "--language", "ko"], {
+      RE_PROMPT_CLAUDE_BIN: fakeClaude,
+      FAKE_ANALYZER_ARGS_FILE: argsFile,
+      FAKE_ANALYZER_STDIN_FILE: stdinFile,
+      FAKE_ANALYZER_REPORT: JSON.stringify(coachReport("claude"))
+    });
+
+    expect(result.exitCode).toBe(0);
+    expect(result.stdout).toContain("분석: requested claude, used claude");
+    const args = JSON.parse(await readFile(argsFile, "utf8")) as string[];
+    expect(args).toEqual(expect.arrayContaining(["-p", "--output-format", "json", "--json-schema", "--no-session-persistence", "--tools", ""]));
+    const stdin = await readFile(stdinFile, "utf8");
+    expect(stdin).toContain("Redacted PromptCoachBundle JSON");
+
+    const fallback = await runCliWithEnv(["coach", sessionPath, "--engine", "claude", "--language", "ko"], {
+      RE_PROMPT_CLAUDE_BIN: fakeClaude,
+      FAKE_ANALYZER_MODE: "invalid"
+    });
+    expect(fallback.exitCode).toBe(0);
+    expect(fallback.stdout).toContain("분석: requested claude, used none (fallback)");
+    expect(fallback.stdout).toContain("로컬 fallback");
+  });
+
+  it("coach defaults to the latest analyzable session and supports json format", async () => {
+    const { codexHome } = await makeCodexHomeWithSession("simple-success.jsonl");
+
+    const result = await runCli(["coach", "--engine", "none", "--language", "en", "--format", "json", "--codex-home", codexHome]);
+
+    expect(result.exitCode).toBe(0);
+    const json = JSON.parse(result.stdout) as PromptCoachReport;
+    expect(json.schemaVersion).toBe(1);
+    expect(json.analysis).toMatchObject({ requestedEngine: "none", usedEngine: "none", fallback: false });
+    expect(json.rewriteInYourVoice).toContain("Update README title only");
   });
 
   it("invokes codex analyzer with safe non-interactive flags for retro", async () => {
@@ -509,5 +582,32 @@ function analyzerReport(engine: "codex" | "claude"): RetroReport {
     },
     nextSessionChecklist: ["Put the public API response shape constraint in the first prompt."],
     limitations: ["External CLI analysis used only the redacted EvidenceBundle."]
+  };
+}
+
+function coachReport(engine: "codex" | "claude"): PromptCoachReport {
+  return {
+    schemaVersion: 1,
+    analysis: {
+      requestedEngine: engine,
+      usedEngine: engine,
+      fallback: false
+    },
+    session: {
+      source: "codex",
+      sessionId: "sess-plan-followups",
+      title: `${engine} prompt coach`,
+      confidence: "medium"
+    },
+    language: "ko",
+    oneLineTake: "Bootstrap 요청은 짧았고, 뒤에 Release gate 계획이 붙으면서 한 세션 안에서 범위가 커졌습니다.",
+    whatYouActuallyWrote: "처음에는 Bootstrap the CLI project라고 했고, 뒤에는 Release gate 계획을 붙였습니다.",
+    whereItWentWrong: "Bootstrap이라는 말만으로는 어디까지 만들고 어디서 멈출지 충분히 고정되지 않았습니다.",
+    rewriteInYourVoice:
+      "Bootstrap the CLI project. 다만 이번 세션에서는 CLI 골격만 만들고, Release gate나 tag 작업은 하지 마. 완료 전에는 pnpm test, pnpm typecheck, pnpm build를 실행해줘.",
+    whyThisWorks: "원래 짧은 문장 구조를 유지하면서 범위와 검증 기준을 앞에 붙였기 때문입니다.",
+    rescueLine: "여기서 멈추고 Bootstrap 범위인지 Release gate 범위인지 먼저 분리해줘.",
+    confidence: "medium",
+    limitations: ["External CLI analysis used only the redacted PromptCoachBundle."]
   };
 }

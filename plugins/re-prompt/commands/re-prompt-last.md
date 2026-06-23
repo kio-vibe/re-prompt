@@ -4,7 +4,7 @@ description: Analyze the latest analyzable local Codex session with re-prompt.
 
 # re-prompt Last
 
-Analyze the latest analyzable stored Codex session.
+Coach the latest analyzable stored Codex session.
 
 ## Preflight
 
@@ -18,28 +18,27 @@ If missing, run `/re-prompt-install` first. Do not install automatically from th
 
 ## Command
 
-Default local heuristic report:
+Default prompt coach:
+
+```bash
+re-prompt coach --engine codex --language auto
+```
+
+Detailed forensic report, only when the user explicitly asks for it:
 
 ```bash
 re-prompt last
 ```
 
-Optional CLI-enhanced reports:
-
-```bash
-re-prompt last --engine codex
-re-prompt last --engine claude
-```
-
-Use `--engine codex` or `--engine claude` only when the user explicitly asks for an enhanced report. These engines receive a redacted EvidenceBundle, not raw transcripts.
+Use `re-prompt coach --engine claude --language auto` only when the user explicitly asks for Claude.
 
 ## Result
 
-Summarize the report's:
+Summarize the coach output:
 
-- selected session and selection confidence
-- main friction cause
-- most useful better prompt or rescue prompt
-- analyzer line, including fallback if present
+- what the user actually wrote
+- where that wording was hard for the agent to execute
+- the rewrite in the user's own voice
+- the one rescue line they could use next time
 
 Do not paste raw transcript content.

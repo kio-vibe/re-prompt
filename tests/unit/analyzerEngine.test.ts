@@ -1,5 +1,7 @@
 import { parseEngine } from "../../src/analyzers/engine.js";
 import { buildAnalyzerPrompt, extractJsonValue, INTERNAL_ANALYSIS_MARKER } from "../../src/analyzers/cliAnalyzer.js";
+import { promptCoachReportJsonSchema } from "../../src/analyzers/coachSchema.js";
+import { retroReportJsonSchema } from "../../src/analyzers/reportSchema.js";
 import type { EvidenceBundle, RetroReport } from "../../src/core/types.js";
 
 describe("analyzer engine", () => {
@@ -27,7 +29,74 @@ describe("analyzer engine", () => {
     expect(extractJsonValue(JSON.stringify({ result: JSON.stringify(report) }))).toMatchObject({ schemaVersion: 1 });
     expect(() => extractJsonValue("not json")).toThrow(/not valid JSON/);
   });
+
+  it("uses strict object schemas accepted by Codex structured output", () => {
+    expect(findLooseObjectSchemas(promptCoachReportJsonSchema)).toEqual([]);
+    expect(findLooseObjectSchemas(retroReportJsonSchema)).toEqual([]);
+    expect(findObjectSchemasWithMissingRequiredProperties(promptCoachReportJsonSchema)).toEqual([]);
+    expect(findObjectSchemasWithMissingRequiredProperties(retroReportJsonSchema)).toEqual([]);
+  });
 });
+
+function findLooseObjectSchemas(schema: unknown, path = "$"): string[] {
+  if (!schema || typeof schema !== "object") {
+    return [];
+  }
+  const value = schema as Record<string, unknown>;
+  const loose: string[] = [];
+  if (value.type === "object" && value.additionalProperties !== false) {
+    loose.push(path);
+  }
+  for (const [key, nested] of Object.entries(value)) {
+    if (key === "properties" && nested && typeof nested === "object") {
+      for (const [propertyKey, propertySchema] of Object.entries(nested as Record<string, unknown>)) {
+        loose.push(...findLooseObjectSchemas(propertySchema, `${path}.properties.${propertyKey}`));
+      }
+      continue;
+    }
+    if (key === "items") {
+      loose.push(...findLooseObjectSchemas(nested, `${path}.items`));
+      continue;
+    }
+    if ((key === "anyOf" || key === "oneOf" || key === "allOf") && Array.isArray(nested)) {
+      nested.forEach((item, index) => loose.push(...findLooseObjectSchemas(item, `${path}.${key}[${index}]`)));
+    }
+  }
+  return loose;
+}
+
+function findObjectSchemasWithMissingRequiredProperties(schema: unknown, path = "$"): string[] {
+  if (!schema || typeof schema !== "object") {
+    return [];
+  }
+  const value = schema as Record<string, unknown>;
+  const failures: string[] = [];
+  if (value.type === "object" && value.properties && typeof value.properties === "object") {
+    const propertyKeys = Object.keys(value.properties as Record<string, unknown>).sort();
+    const required = Array.isArray(value.required) ? value.required.map(String).sort() : [];
+    if (propertyKeys.join("\n") !== required.join("\n")) {
+      failures.push(path);
+    }
+  }
+  for (const [key, nested] of Object.entries(value)) {
+    if (key === "properties" && nested && typeof nested === "object") {
+      for (const [propertyKey, propertySchema] of Object.entries(nested as Record<string, unknown>)) {
+        failures.push(...findObjectSchemasWithMissingRequiredProperties(propertySchema, `${path}.properties.${propertyKey}`));
+      }
+      continue;
+    }
+    if (key === "items") {
+      failures.push(...findObjectSchemasWithMissingRequiredProperties(nested, `${path}.items`));
+      continue;
+    }
+    if ((key === "anyOf" || key === "oneOf" || key === "allOf") && Array.isArray(nested)) {
+      nested.forEach((item, index) =>
+        failures.push(...findObjectSchemasWithMissingRequiredProperties(item, `${path}.${key}[${index}]`))
+      );
+    }
+  }
+  return failures;
+}
 
 function minimalBundle(): EvidenceBundle {
   return {

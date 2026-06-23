@@ -1,6 +1,6 @@
 # Known Limitations
 
-`re-prompt v0.3.0` is an early dogfood release. It is useful for testing prompt coaching quality, but it is intentionally narrow.
+`re-prompt v0.3.1` is an early dogfood release. It is useful for testing prompt coaching quality, but it is intentionally narrow.
 
 ## Current scope
 

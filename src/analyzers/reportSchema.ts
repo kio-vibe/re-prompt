@@ -44,6 +44,65 @@ const suggestedFixSchema = z.union([
   z.object({ kind: z.literal("workflow"), text: z.string() })
 ]);
 
+const evidenceKindJsonSchema = {
+  enum: ["user_message", "assistant_message", "command", "file_change", "plan_update", "usage", "parser_note"]
+} as const;
+
+const evidenceRefJsonSchema = {
+  anyOf: ["quote", "summary", "path", "command"].map((field) => ({
+    type: "object",
+    additionalProperties: false,
+    required: ["turnIndex", "eventKind", field],
+    properties: {
+      turnIndex: { type: "integer", minimum: 1 },
+      eventKind: evidenceKindJsonSchema,
+      [field]: { type: "string" }
+    }
+  }))
+} as const;
+
+const suggestedFixJsonSchema = {
+  anyOf: [
+    {
+      type: "object",
+      additionalProperties: false,
+      required: ["kind", "text"],
+      properties: {
+        kind: { type: "string", enum: ["initial_prompt"] },
+        text: { type: "string" }
+      }
+    },
+    {
+      type: "object",
+      additionalProperties: false,
+      required: ["kind", "turnIndex", "text"],
+      properties: {
+        kind: { type: "string", enum: ["rescue_prompt"] },
+        turnIndex: { type: "integer", minimum: 1 },
+        text: { type: "string" }
+      }
+    },
+    {
+      type: "object",
+      additionalProperties: false,
+      required: ["kind", "text"],
+      properties: {
+        kind: { type: "string", enum: ["agents_md_rule"] },
+        text: { type: "string" }
+      }
+    },
+    {
+      type: "object",
+      additionalProperties: false,
+      required: ["kind", "text"],
+      properties: {
+        kind: { type: "string", enum: ["workflow"] },
+        text: { type: "string" }
+      }
+    }
+  ]
+} as const;
+
 export const retroReportSchema: z.ZodType<RetroReport> = z
   .object({
     schemaVersion: z.literal(1),
@@ -138,7 +197,7 @@ export const retroReportSchema: z.ZodType<RetroReport> = z
 
 export const retroReportJsonSchema = {
   type: "object",
-  additionalProperties: true,
+  additionalProperties: false,
   required: [
     "schemaVersion",
     "session",
@@ -153,12 +212,13 @@ export const retroReportJsonSchema = {
     "limitations"
   ],
   properties: {
-    schemaVersion: { const: 1 },
+    schemaVersion: { type: "integer", enum: [1] },
     session: {
       type: "object",
+      additionalProperties: false,
       required: ["source", "sessionId", "title", "inferredGoal", "outcome", "confidence"],
       properties: {
-        source: { const: "codex" },
+        source: { type: "string", enum: ["codex"] },
         sessionId: { type: "string" },
         title: { type: "string" },
         inferredGoal: { type: "string" },
@@ -169,6 +229,7 @@ export const retroReportJsonSchema = {
     executiveSummary: { type: "string" },
     friction: {
       type: "object",
+      additionalProperties: false,
       required: ["score", "label", "mainCause"],
       properties: {
         score: { type: "integer", minimum: 0, maximum: 100 },
@@ -187,10 +248,42 @@ export const retroReportJsonSchema = {
         }
       }
     },
-    turningPoints: { type: "array", items: { type: "object" } },
-    findings: { type: "array", items: { type: "object" } },
+    turningPoints: {
+      type: "array",
+      items: {
+        type: "object",
+        additionalProperties: false,
+        required: ["turnIndex", "title", "whatHappened", "whyItMattered", "evidence"],
+        properties: {
+          turnIndex: { type: "integer", minimum: 1 },
+          title: { type: "string" },
+          whatHappened: { type: "string" },
+          whyItMattered: { type: "string" },
+          evidence: { type: "array", items: evidenceRefJsonSchema }
+        }
+      }
+    },
+    findings: {
+      type: "array",
+      items: {
+        type: "object",
+        additionalProperties: false,
+        required: ["id", "title", "severity", "confidence", "diagnosis", "evidence", "betterBehavior", "suggestedFix"],
+        properties: {
+          id: { type: "string" },
+          title: { type: "string" },
+          severity: { enum: ["low", "medium", "high"] },
+          confidence: { enum: ["low", "medium", "high"] },
+          diagnosis: { type: "string" },
+          evidence: { type: "array", items: evidenceRefJsonSchema },
+          betterBehavior: { type: "string" },
+          suggestedFix: suggestedFixJsonSchema
+        }
+      }
+    },
     betterInitialPrompt: {
       type: "object",
+      additionalProperties: false,
       required: ["prompt", "whyThisWouldHelp", "confidence"],
       properties: {
         prompt: { type: "string" },
@@ -198,9 +291,24 @@ export const retroReportJsonSchema = {
         confidence: { enum: ["low", "medium", "high"] }
       }
     },
-    rescuePrompts: { type: "array", items: { type: "object" } },
+    rescuePrompts: {
+      type: "array",
+      items: {
+        type: "object",
+        additionalProperties: false,
+        required: ["turnIndex", "prompt", "useWhen", "expectedEffect", "confidence"],
+        properties: {
+          turnIndex: { type: "integer", minimum: 1 },
+          prompt: { type: "string" },
+          useWhen: { type: "string" },
+          expectedEffect: { type: "string" },
+          confidence: { enum: ["low", "medium", "high"] }
+        }
+      }
+    },
     agentsMdPatch: {
       type: "object",
+      additionalProperties: false,
       required: ["shouldPatch", "target", "rationale", "patchMarkdown", "rules"],
       properties: {
         shouldPatch: { type: "boolean" },

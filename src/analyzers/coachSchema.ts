@@ -35,7 +35,7 @@ export const promptCoachReportSchema: z.ZodType<PromptCoachReport> = z
 
 export const promptCoachReportJsonSchema = {
   type: "object",
-  additionalProperties: true,
+  additionalProperties: false,
   required: [
     "schemaVersion",
     "session",
@@ -50,12 +50,13 @@ export const promptCoachReportJsonSchema = {
     "limitations"
   ],
   properties: {
-    schemaVersion: { const: 1 },
+    schemaVersion: { type: "integer", enum: [1] },
     session: {
       type: "object",
+      additionalProperties: false,
       required: ["source", "sessionId", "title", "confidence"],
       properties: {
-        source: { const: "codex" },
+        source: { type: "string", enum: ["codex"] },
         sessionId: { type: "string" },
         title: { type: "string" },
         confidence: { enum: ["low", "medium", "high"] }

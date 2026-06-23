@@ -81,7 +81,7 @@ Preview conservative AGENTS.md suggestions from repeated recent evidence:
 
 ## Dogfood / Feedback
 
-`v0.3.0` is ready for Codex plugin dogfood, but it is not published to npm yet.
+`v0.3.1` is ready for Codex plugin dogfood, but it is not published to npm yet.
 
 The fastest path is in the [Codex plugin install guide](docs/install-codex-plugin.md).
 
@@ -171,7 +171,7 @@ pnpm pack
 mkdir /tmp/re-prompt-install-test
 cd /tmp/re-prompt-install-test
 npm init -y
-npm install /path/to/re-prompt-0.3.0.tgz
+npm install /path/to/re-prompt-0.3.1.tgz
 npx re-prompt --version
 npx re-prompt doctor
 ```

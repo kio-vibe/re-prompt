@@ -5,7 +5,7 @@
 If you prefer the plugin-first flow, start with [install the Codex plugin](install-codex-plugin.md).
 
 ```bash
-npm install -g https://github.com/kio-vibe/re-prompt/releases/download/v0.4.2/re-prompt-0.4.2.tgz
+npm install -g https://github.com/kio-vibe/re-prompt/releases/download/v0.5.0/re-prompt-0.5.0.tgz
 re-prompt --version
 re-prompt
 ```
@@ -13,18 +13,18 @@ re-prompt
 Expected version:
 
 ```txt
-0.4.2
+0.5.0
 ```
 
 ## First run
 
-Use the candidate picker first:
+Use the habit-first flow first:
 
 ```bash
 re-prompt
 ```
 
-It shows a few recent Codex sessions in plain language. Pick a session id or use the plugin flow to choose by number.
+It summarizes recent prompt habits, suggests a default sentence to use next time, and shows evidence sessions you can inspect by number in the plugin flow.
 
 For direct prompt coaching:
 
@@ -36,12 +36,13 @@ For advanced investigation:
 
 ```bash
 re-prompt doctor
+re-prompt habits --since 30d
 re-prompt candidates --since 30d
 re-prompt scan --since 30d
 re-prompt retro <session-id-or-path>
 ```
 
-`doctor`, `candidates`, `scan`, `go`, and `coach` need local Codex stored sessions. They are most useful on a machine where Codex CLI has already been used.
+`doctor`, `habits`, `candidates`, `scan`, `go`, and `coach` need local Codex stored sessions. They are most useful on a machine where Codex CLI has already been used.
 
 Optional Claude coach analysis is available for explicit session analysis:
 

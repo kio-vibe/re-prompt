@@ -2,21 +2,21 @@
 
 A Codex session prompt coach plugin and CLI.
 
-`re-prompt` is not a prompt scorecard. It reads saved local Codex transcripts, helps you pick one session worth reviewing, then rewrites your actual prompt in your own voice.
+`re-prompt` is not a prompt scorecard. It reads saved local Codex transcripts, summarizes recent prompt habits, then rewrites your actual wording in your own voice.
 
 ## Install
 
 `re-prompt` is not published to npm yet. For dogfood, install or update the packaged CLI first:
 
 ```bash
-npm install -g https://github.com/kio-vibe/re-prompt/releases/download/v0.4.2/re-prompt-0.4.2.tgz
+npm install -g https://github.com/kio-vibe/re-prompt/releases/download/v0.5.0/re-prompt-0.5.0.tgz
 re-prompt --version
 ```
 
 Expected version:
 
 ```txt
-0.4.2
+0.5.0
 ```
 
 Then install the Codex plugin:
@@ -48,11 +48,12 @@ In Codex, start with one command:
 /re-prompt
 ```
 
-It will show a few recent Codex session candidates in plain language:
+It will show a habit-first summary from recent Codex sessions:
 
-- what that chat was about
-- why it might be worth reviewing
-- the likely prompt problem in one short line
+- what you are already doing well
+- what tends to make sessions harder
+- a default sentence you can use next time
+- 2-3 evidence sessions you can inspect by number
 
 Reply with a number, such as:
 
@@ -60,14 +61,15 @@ Reply with a number, such as:
 1번
 ```
 
-Then `re-prompt` coaches that session: what you actually wrote, where it became ambiguous, and how to say it better in your own voice.
+Then `re-prompt` coaches that evidence session: what you actually wrote, where it became ambiguous, and how to say it better in your own voice.
 
 ## CLI Fallback
 
-The same candidate picker is available from a terminal:
+The same habit summary is available from a terminal:
 
 ```bash
 re-prompt
+re-prompt habits
 re-prompt candidates --top 3
 ```
 
@@ -87,6 +89,9 @@ re-prompt rules --since 30d
 
 `re-prompt` coaches the wording of a session prompt:
 
+- recent prompt habits across multiple sessions
+- good patterns and repeated risks
+- a default rewrite for the next session
 - what you actually wrote
 - where that wording became ambiguous, late, broad, or hard for an agent to execute
 - how to rewrite it in your own voice
@@ -101,7 +106,7 @@ re-prompt rules --since 30d
 
 ## Dogfood / Feedback
 
-`v0.4.2` is ready for Codex plugin dogfood, but it is not published to npm yet.
+`v0.5.0` is ready for Codex plugin dogfood, but it is not published to npm yet.
 
 The fastest path is in the [Codex plugin install guide](docs/install-codex-plugin.md).
 
@@ -143,6 +148,7 @@ Underlying CLI commands:
 
 ```bash
 re-prompt
+re-prompt habits --since 30d
 re-prompt candidates --since 30d
 re-prompt doctor
 re-prompt scan --since 30d
@@ -158,9 +164,9 @@ re-prompt rules --since 30d
 
 ## Privacy
 
-`re-prompt` reads local Codex transcripts and redacts common secrets and local home paths before analysis. Plugin coach flows use Codex by default and send only a redacted prompt-coach bundle, not raw transcripts.
+`re-prompt` reads local Codex transcripts and redacts common secrets and local home paths before analysis. Plugin habit and coach flows use Codex by default and send only redacted habit/coach bundles, not raw transcripts.
 
-`candidates`, `scan`, `go`, and `rules` stay local heuristic-only. `coach` can use Codex, Claude, or local fallback.
+`candidates`, `scan`, `go`, and `rules` stay local heuristic-only. `habits` and `coach` can use Codex, Claude, or local fallback.
 
 AGENTS.md patches are dry-run only in this release.
 
@@ -189,7 +195,7 @@ pnpm pack
 mkdir /tmp/re-prompt-install-test
 cd /tmp/re-prompt-install-test
 npm init -y
-npm install /path/to/re-prompt-0.4.2.tgz
+npm install /path/to/re-prompt-0.5.0.tgz
 npx re-prompt --version
 npx re-prompt doctor
 ```

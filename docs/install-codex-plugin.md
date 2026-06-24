@@ -15,14 +15,14 @@ It still uses the local `re-prompt` CLI under the hood.
 Plugin skill install and global CLI install are separate. The plugin calls the `re-prompt` executable on your machine; installing the plugin does not install or update that executable.
 
 ```bash
-npm install -g https://github.com/kio-vibe/re-prompt/releases/download/v0.4.2/re-prompt-0.4.2.tgz
+npm install -g https://github.com/kio-vibe/re-prompt/releases/download/v0.5.0/re-prompt-0.5.0.tgz
 re-prompt --version
 ```
 
 Expected version:
 
 ```txt
-0.4.2
+0.5.0
 ```
 
 ## Install The Plugin
@@ -74,9 +74,9 @@ In Codex, run:
 
 The skill checks whether the local CLI exists. If it is missing, it will show the install command and ask before running it.
 
-If the CLI is older than `0.4.0`, the skill should stop and ask you to update instead of trying to inspect Codex transcript files directly.
+If the CLI is older than `0.5.0`, the skill should stop and ask you to update instead of trying to inspect Codex transcript files directly.
 
-When the CLI is available, `/re-prompt` shows a few recent Codex session candidates. Pick one by number, such as `1번` or `1`, and the plugin will run prompt coaching for that session.
+When the CLI is available, `/re-prompt` shows a habit summary from recent Codex sessions: strengths, risks, a default rewrite, and 2-3 evidence sessions. Pick one evidence session by number, such as `1번` or `1`, and the plugin will run prompt coaching for that session.
 
 ## Advanced CLI Flows
 
@@ -84,18 +84,19 @@ The plugin hides these from the normal first-run path, but they remain available
 
 ```bash
 re-prompt candidates --since 30d
+re-prompt habits --since 30d
 re-prompt coach <session-id-or-path> --engine codex
 re-prompt coach <session-id-or-path> --engine claude
 re-prompt retro <session-id-or-path>
 re-prompt rules --since 30d
 ```
 
-`candidates`, `scan`, `go`, and `rules` remain heuristic-only. Use `re-prompt retro <session-id-or-path>` only when you want the detailed forensic report.
+`candidates`, `scan`, `go`, and `rules` remain heuristic-only. `habits` and `coach` can use Codex, Claude, or local fallback. Use `re-prompt retro <session-id-or-path>` only when you want the detailed forensic report.
 
 ## Privacy
 
 Do not paste raw Codex rollout JSONL, private code, secrets, or unredacted command output into issues or chat.
 
-The plugin runs local `re-prompt` commands and summarizes the generated coach output. `coach --engine codex` and `coach --engine claude` receive a redacted PromptCoachBundle, not raw transcripts.
+The plugin runs local `re-prompt` commands and summarizes the generated habit/coach output. `habits --engine codex` and `coach --engine codex` receive redacted bundles, not raw transcripts.
 
-The plugin should not read `~/.codex/sessions/**/*.jsonl` directly. If `re-prompt candidates` fails, treat it as a CLI setup/version problem and run `re-prompt --version` or `re-prompt doctor` instead of manually parsing transcripts.
+The plugin should not read `~/.codex/sessions/**/*.jsonl` directly. If `re-prompt habits` fails, treat it as a CLI setup/version problem and run `re-prompt --version` or `re-prompt doctor` instead of manually parsing transcripts.

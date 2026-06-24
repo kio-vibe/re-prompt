@@ -291,6 +291,50 @@ export interface PromptCoachBundle {
   };
 }
 
+export interface PromptHabitBundle {
+  product: "re-prompt";
+  bundleVersion: 1;
+  language: "auto" | "en" | "ko";
+  sessions: {
+    source: "codex";
+    sessionId: string;
+    startedAt?: string;
+    turnCount: number;
+    score: number;
+    mainIssue: string;
+    chatSummary: string;
+  }[];
+  userMessages: {
+    sessionId: string;
+    turnIndex: number;
+    kind: "initial" | "follow_up" | "correction" | "late_constraint" | "rescue_worthy";
+    text: string;
+    whyIncluded: string;
+  }[];
+  evidence: {
+    signals: {
+      sessionId: string;
+      turnIndex: number;
+      kind: string;
+      title: string;
+      confidence: "low" | "medium" | "high";
+    }[];
+    lateConstraints: string[];
+    userCorrections: string[];
+    observedTestCommands: string[];
+    repeatedFiles: string[];
+    uncertainty: {
+      sessionsAnalyzed: number;
+      sessionsSkipped: number;
+      reason?: string;
+    };
+  };
+  privacy: {
+    redactionApplied: boolean;
+    redactionCount: number;
+  };
+}
+
 export interface RetroReport {
   schemaVersion: 1;
   analysis?: {
@@ -378,6 +422,39 @@ export interface PromptCoachReport {
   rewriteInYourVoice: string;
   whyThisWorks: string;
   rescueLine: string;
+  confidence: "low" | "medium" | "high";
+  limitations: string[];
+}
+
+export interface PromptHabitReport {
+  schemaVersion: 1;
+  analysis?: {
+    requestedEngine: Engine;
+    usedEngine: Engine;
+    fallback: boolean;
+    fallbackReason?: string;
+  };
+  language: "en" | "ko";
+  oneLineTake: string;
+  strengths: {
+    title: string;
+    detail: string;
+    evidenceSessionIds: string[];
+  }[];
+  risks: {
+    title: string;
+    detail: string;
+    evidenceSessionIds: string[];
+  }[];
+  repeatedPhrases: string[];
+  defaultRewrite: string;
+  evidenceSessions: {
+    index: number;
+    sessionId: string;
+    title: string;
+    whyRelevant: string;
+    startedAt?: string;
+  }[];
   confidence: "low" | "medium" | "high";
   limitations: string[];
 }

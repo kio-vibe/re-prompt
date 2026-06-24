@@ -8,6 +8,13 @@ import { ClaudeCliAnalyzer, CodexCliAnalyzer } from "./analyzers/cliAnalyzer.js"
 import { assertHeuristicOnlyEngine, parseEngine, type Engine } from "./analyzers/engine.js";
 import { HeuristicOnlyAnalyzer } from "./analyzers/heuristicOnlyAnalyzer.js";
 import {
+  buildFallbackPromptHabitReport,
+  ClaudePromptHabitAnalyzer,
+  CodexPromptHabitAnalyzer,
+  lintPromptHabitReport,
+  withHabitAnalysis
+} from "./analyzers/promptHabitAnalyzer.js";
+import {
   buildFallbackPromptCoachReport,
   ClaudePromptCoachAnalyzer,
   CodexPromptCoachAnalyzer,
@@ -16,13 +23,24 @@ import {
 } from "./analyzers/promptCoachAnalyzer.js";
 import { buildPromptCoachBundle } from "./core/coach/buildPromptCoachBundle.js";
 import { buildEvidenceBundle } from "./core/evidence/buildEvidenceBundle.js";
+import { buildPromptHabitBundle, type PromptHabitSessionInput } from "./core/habits/buildPromptHabitBundle.js";
 import { redactValue } from "./core/privacy/redact.js";
 import { lintRetroReport } from "./core/reportQuality.js";
 import { computeFrictionScore } from "./core/scoring/frictionScore.js";
 import { extractSignals } from "./core/signals/index.js";
-import type { EvidenceBundle, NormalizedSession, PromptCoachBundle, PromptCoachReport, RetroReport, SessionSignal } from "./core/types.js";
+import type {
+  EvidenceBundle,
+  NormalizedSession,
+  PromptCoachBundle,
+  PromptCoachReport,
+  PromptHabitBundle,
+  PromptHabitReport,
+  RetroReport,
+  SessionSignal
+} from "./core/types.js";
 import { renderMarkdownReport } from "./renderers/markdownRenderer.js";
 import { renderPromptCoachReport } from "./renderers/promptCoachRenderer.js";
+import { renderPromptHabitReport } from "./renderers/promptHabitRenderer.js";
 import { generateAgentsMdPatch } from "./rules/agentsMdPatch.js";
 import {
   defaultCodexHome,
@@ -74,15 +92,22 @@ interface CoachResult {
   report: PromptCoachReport;
 }
 
+interface HabitResult {
+  bundle: PromptHabitBundle;
+  report: PromptHabitReport;
+}
+
 export function createProgram(): Command {
   const program = new Command()
     .name("re-prompt")
     .description("A local-first Codex session prompt coach.")
-    .version("0.4.2")
+    .version("0.5.0")
     .action(async () => {
-      await candidatesCommand({
+      await habitsCommand({
         since: "30d",
-        top: 3,
+        topSessions: 12,
+        evidence: 3,
+        engine: "codex",
         format: "md",
         language: "auto"
       });
@@ -131,6 +156,30 @@ export function createProgram(): Command {
         top: Number(options.top),
         format: parseFormat(options.format),
         language: parseGoLanguage(options.language),
+        codexHome: options.codexHome,
+        repo: options.repo
+      });
+    });
+
+  program
+    .command("habits")
+    .description("Summarize prompt habits across recent Codex sessions.")
+    .option("--since <range>", "Time range such as 30d or 2026-06-01", "30d")
+    .option("--top-sessions <count>", "Maximum recent sessions to analyze", "12")
+    .option("--evidence <count>", "Evidence sessions to show", "3")
+    .option("--engine <engine>", "Analysis engine: codex, claude, or none", "codex")
+    .option("--language <language>", "Output language: auto, en, or ko", "auto")
+    .option("--format <format>", "md or json", "md")
+    .option("--codex-home <path>", "Override CODEX_HOME")
+    .option("--repo <path>", "Filter by repo/cwd")
+    .action(async (options) => {
+      await habitsCommand({
+        since: options.since,
+        topSessions: Number(options.topSessions),
+        evidence: Number(options.evidence),
+        engine: parseEngine(options.engine),
+        language: parseGoLanguage(options.language),
+        format: parseFormat(options.format),
         codexHome: options.codexHome,
         repo: options.repo
       });
@@ -340,6 +389,103 @@ async function candidatesCommand(options: {
   }
 
   printCandidates(rows, { language, since: options.since });
+}
+
+async function habitsCommand(options: {
+  since: string;
+  topSessions: number;
+  evidence: number;
+  engine: Engine;
+  format: Format;
+  language: GoLanguageOption;
+  codexHome?: string;
+  repo?: string;
+}): Promise<void> {
+  const language = resolveGoLanguage(options.language);
+  const result = await analyzeHabits({
+    since: options.since,
+    topSessions: Math.max(Number.isFinite(options.topSessions) ? options.topSessions : 12, 1),
+    evidence: Math.max(Number.isFinite(options.evidence) ? options.evidence : 3, 1),
+    engine: options.engine,
+    language,
+    codexHome: options.codexHome,
+    repo: options.repo
+  });
+
+  printHabitReport(result.report, options.format);
+}
+
+async function analyzeHabits(options: {
+  since: string;
+  topSessions: number;
+  evidence: number;
+  engine: Engine;
+  language: GoLanguage;
+  codexHome?: string;
+  repo?: string;
+}): Promise<HabitResult> {
+  const inputs = await collectHabitInputs(options);
+  const bundle = buildPromptHabitBundle(inputs, {
+    language: options.language,
+    sessionsSkipped: Math.max(options.topSessions - inputs.length, 0)
+  });
+  const redacted = redactValue(bundle);
+  const redactedBundle = {
+    ...redacted.value,
+    privacy: {
+      redactionApplied: redacted.redactionCount > 0,
+      redactionCount: redacted.redactionCount
+    }
+  };
+  const report = await analyzeHabitBundle(redactedBundle, options.engine, options.language);
+  const limitedReport = {
+    ...report,
+    evidenceSessions: report.evidenceSessions.slice(0, options.evidence)
+  };
+  return { bundle: redactedBundle, report: limitedReport };
+}
+
+async function collectHabitInputs(options: {
+  since: string;
+  topSessions: number;
+  language: GoLanguage;
+  codexHome?: string;
+  repo?: string;
+}): Promise<PromptHabitSessionInput[]> {
+  const since = parseSince(options.since);
+  const maxTranscriptBytes = getMaxTranscriptBytes();
+  const sessions = (await locateCodexSessions({ codexHome: options.codexHome, repoPath: options.repo })).filter(
+    (session) => !since || session.mtimeMs >= since.getTime()
+  );
+  const inputs: PromptHabitSessionInput[] = [];
+
+  for (const candidate of sessions.slice(0, Math.max(options.topSessions, 1) * 3)) {
+    if (candidate.sizeBytes > maxTranscriptBytes) {
+      continue;
+    }
+    try {
+      const session = await loadNormalizedSession(candidate.transcriptPath);
+      const signals = extractSignals(session);
+      const evidence = buildEvidenceBundle(session, signals);
+      const score = computeFrictionScore(session, signals);
+      inputs.push({
+        session,
+        signals,
+        evidence,
+        score,
+        mainIssue: signals[0]?.kind ?? "low_friction",
+        chatSummary: summarizeCandidateChat(session, options.language),
+        startedAt: session.startedAt ?? candidate.startedAt
+      });
+    } catch {
+      continue;
+    }
+    if (inputs.length >= options.topSessions) {
+      break;
+    }
+  }
+
+  return inputs.sort((left, right) => right.score - left.score);
 }
 
 async function collectCandidateRows(options: {
@@ -882,6 +1028,15 @@ function printCoachReport(report: PromptCoachReport, format: Format): void {
   console.log(renderPromptCoachReport(redacted));
 }
 
+function printHabitReport(report: PromptHabitReport, format: Format): void {
+  const redacted = redactValue(report).value;
+  if (format === "json") {
+    console.log(JSON.stringify(redacted, null, 2));
+    return;
+  }
+  console.log(renderPromptHabitReport(redacted));
+}
+
 function printReport(report: RetroReport, format: Format): void {
   const redacted = redactValue(report).value;
   if (format === "json") {
@@ -1045,6 +1200,33 @@ async function analyzeCoachBundle(
   }
 }
 
+async function analyzeHabitBundle(
+  bundle: PromptHabitBundle,
+  engine: Engine,
+  language: GoLanguage
+): Promise<PromptHabitReport> {
+  if (engine === "none") {
+    return buildFallbackPromptHabitReport(bundle, { engine, language, fallback: false });
+  }
+
+  try {
+    const analyzer = engine === "codex" ? new CodexPromptHabitAnalyzer() : new ClaudePromptHabitAnalyzer();
+    const report = await analyzer.analyze(bundle, { engine, language });
+    const issues = lintPromptHabitReport(report, bundle);
+    if (issues.length > 0) {
+      throw new Error(`Habit report failed quality checks: ${issues.join(", ")}`);
+    }
+    return withHabitAnalysis(report, { requestedEngine: engine, usedEngine: engine, fallback: false });
+  } catch (error) {
+    return buildFallbackPromptHabitReport(bundle, {
+      engine,
+      language,
+      fallback: true,
+      fallbackReason: error instanceof Error ? error.message : String(error)
+    });
+  }
+}
+
 function withAnalysis(report: RetroReport, analysis: NonNullable<RetroReport["analysis"]>): RetroReport {
   return {
     ...report,
@@ -1156,9 +1338,11 @@ function formatCheck(ok: boolean, text: string): string {
 async function main(): Promise<void> {
   try {
     if (process.argv.slice(2).length === 0) {
-      await candidatesCommand({
+      await habitsCommand({
         since: "30d",
-        top: 3,
+        topSessions: 12,
+        evidence: 3,
+        engine: "codex",
         format: "md",
         language: "auto"
       });

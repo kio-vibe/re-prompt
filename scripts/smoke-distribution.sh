@@ -64,6 +64,14 @@ if ! printf '%s\n' "$GO_OUTPUT" | grep -q 're-prompt go'; then
   exit 1
 fi
 
+echo "==> Checking prompt habit fallback"
+HABITS_OUTPUT="$(npx re-prompt habits --engine none --format md)"
+printf '%s\n' "$HABITS_OUTPUT"
+if ! printf '%s\n' "$HABITS_OUTPUT" | grep -Eq 'Prompt Habits From Recent Sessions|최근 세션에서 보이는 프롬프트 습관'; then
+  echo "Habits output did not contain the expected heading." >&2
+  exit 1
+fi
+
 echo "==> Checking latest coach fallback"
 set +e
 COACH_OUTPUT="$(npx re-prompt coach --engine none 2>&1)"

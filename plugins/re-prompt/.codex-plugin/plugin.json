@@ -1,6 +1,6 @@
 {
   "name": "re-prompt",
-  "version": "0.4.2",
+  "version": "0.5.0",
   "description": "Run re-prompt prompt coaching from inside Codex.",
   "author": {
     "name": "kio-vibe",
@@ -19,8 +19,8 @@
   "skills": "./skills/",
   "interface": {
     "displayName": "re-prompt",
-    "shortDescription": "Coach prompts from local Codex sessions",
-    "longDescription": "Use re-prompt from Codex to inspect local stored Codex sessions, analyze the user's own wording, and rewrite better prompts in the user's voice without uploading raw transcripts.",
+    "shortDescription": "Coach prompt habits from local Codex sessions",
+    "longDescription": "Use re-prompt from Codex to summarize recent prompt habits, analyze the user's own wording, and rewrite better prompts in the user's voice without uploading raw transcripts.",
     "developerName": "kio-vibe",
     "category": "Developer Tools",
     "capabilities": [
@@ -31,8 +31,8 @@
     "privacyPolicyURL": "https://github.com/kio-vibe/re-prompt/blob/main/docs/privacy-for-dogfood.md",
     "termsOfServiceURL": "https://github.com/kio-vibe/re-prompt",
     "defaultPrompt": [
-      "Use re-prompt to pick a Codex session to coach",
-      "Show me recent Codex session candidates",
+      "Use re-prompt to review my recent prompt habits",
+      "Show me what I should say next time",
       "Rewrite my session prompt in my own voice"
     ],
     "brandColor": "#2563EB"

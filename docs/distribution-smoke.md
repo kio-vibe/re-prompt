@@ -35,7 +35,7 @@ node dist/cli.js doctor
 node dist/cli.js scan --since 30d
 ```
 
-`doctor`, `scan`, and `coach` need local Codex stored sessions under `~/.codex/sessions`. On a machine without Codex sessions, `doctor` should still explain what is missing.
+`doctor`, `habits`, `scan`, and `coach` need local Codex stored sessions under `~/.codex/sessions`. On a machine without Codex sessions, `doctor` should still explain what is missing.
 
 ## Tarball Install
 
@@ -44,10 +44,11 @@ pnpm pack
 mkdir /tmp/re-prompt-install-test
 cd /tmp/re-prompt-install-test
 npm init -y
-npm install /path/to/re-prompt-0.4.2.tgz
+npm install /path/to/re-prompt-0.5.0.tgz
 npx re-prompt --version
 npx re-prompt --help
 npx re-prompt
+npx re-prompt habits --engine none --format md
 npx re-prompt candidates --top 3
 npx re-prompt go
 npx re-prompt doctor
@@ -95,6 +96,6 @@ It should not include local Codex transcripts, dogfood reports, temp tarballs, o
 ## Interpreting Failures
 
 - `doctor` reports missing sessions: Codex CLI has not created stored sessions on this machine yet.
-- `candidates` or `scan --since 30d` prints no useful rows: there may be no recent analyzable Codex sessions.
+- `habits`, `candidates`, or `scan --since 30d` prints no useful rows: there may be no recent analyzable Codex sessions.
 - `coach --engine none` fails with no analyzable sessions: acceptable on a fresh machine, but not on a maintainer machine with real Codex history.
 - package contents include unexpected files: fix the `files` allowlist in `package.json` before npm publish.

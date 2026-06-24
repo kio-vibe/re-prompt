@@ -2,21 +2,21 @@
 
 This guide is for early testers trying `re-prompt` against their own local Codex sessions.
 
-The goal is not to collect raw transcripts. The goal is to learn whether one `/re-prompt` flow can help you pick a chat, see what went wrong in your own wording, and get a better prompt in your own voice.
+The goal is not to collect raw transcripts. The goal is to learn whether one `/re-prompt` flow can summarize your recent prompt habits, show a useful default rewrite, and let you inspect the evidence sessions behind that judgment.
 
 ## Install Or Update The CLI
 
 `re-prompt` is not published to npm yet. Install or update the packaged CLI first:
 
 ```bash
-npm install -g https://github.com/kio-vibe/re-prompt/releases/download/v0.4.2/re-prompt-0.4.2.tgz
+npm install -g https://github.com/kio-vibe/re-prompt/releases/download/v0.5.0/re-prompt-0.5.0.tgz
 re-prompt --version
 ```
 
 Expected version:
 
 ```txt
-0.4.2
+0.5.0
 ```
 
 ## Install The Codex Plugin
@@ -58,7 +58,7 @@ Normal dogfood flow:
 2번
 ```
 
-The first `/re-prompt` call should show a few candidate Codex chats. Choose one by number. After the coaching output, choose another number if you want to keep comparing.
+The first `/re-prompt` call should show recent prompt habits: good patterns, risks, a default rewrite, and a few evidence sessions. Choose one evidence session by number. After the coaching output, choose another number if you want to keep comparing.
 
 These commands need local Codex stored sessions under your Codex home. They are most useful on a machine where you have already used Codex CLI.
 
@@ -69,14 +69,16 @@ re-prompt coach <session-id-or-path> --engine codex
 re-prompt coach <session-id-or-path> --engine claude
 ```
 
-These engines receive only a redacted prompt-coach bundle. `candidates`, `scan`, `go`, and `rules` remain heuristic-only.
+These engines receive only a redacted habit or prompt-coach bundle. `candidates`, `scan`, `go`, and `rules` remain heuristic-only.
 
 ## What to check
 
 A good coach result:
 
-- makes the candidate list easy to choose from
-- explains what each chat was about without exposing raw transcript text
+- makes the habit summary feel like your actual prompting pattern
+- shows useful strengths and risks without overgeneralizing
+- gives a default rewrite you would actually paste into the next session
+- explains what each evidence session was about without exposing raw transcript text
 - shows a short piece or summary of what you actually wrote
 - says where that wording became ambiguous, late, broad, or hard to execute
 - rewrites the prompt in a way that still sounds like you
@@ -89,7 +91,7 @@ A bad coach result:
 - invents the user's goal or the session outcome
 - sounds like generic AI project-management prose
 - loses the user's tone, sentence structure, or directness
-- makes the candidate list feel like a scorecard
+- makes the habit summary feel like a scorecard
 - leaks local paths, private repo details, secrets, or raw transcript content
 - hides analyzer fallback or makes an external analyzer report look more certain than the evidence supports
 

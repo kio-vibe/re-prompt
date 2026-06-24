@@ -30,7 +30,7 @@ metadata:
 
 # re-prompt
 
-Use the local `re-prompt` CLI to help the user choose one stored Codex session, then coach the user's actual prompt wording in their own voice.
+Use the local `re-prompt` CLI to summarize the user's recent prompt habits across stored Codex sessions, then coach a selected evidence session in the user's own voice.
 
 ## Product Boundary
 
@@ -44,9 +44,9 @@ Use the local `re-prompt` CLI to help the user choose one stored Codex session, 
 - Respond in the user's language. For short slash-command messages, use the surrounding conversation language. If recent conversation is Korean, respond in Korean.
 - Do not announce that you are using the skill unless the user asks.
 - Start with the result, not the process.
-- Before running candidate or coach commands, choose one fixed response language from the conversation: Korean uses `ko`; English uses `en`.
-- Do not use visible process narration such as "I'll pull candidates", "코칭 리포트를 만들게요", or "The CLI is current enough".
-- The visible answer must start directly with the candidate list or the coaching result.
+- Before running habit or coach commands, choose one fixed response language from the conversation: Korean uses `ko`; English uses `en`.
+- Do not use visible process narration such as "I'll pull sessions", "코칭 리포트를 만들게요", or "The CLI is current enough".
+- The visible answer must start directly with the habit summary or the coaching result.
 
 ## First Step
 
@@ -56,31 +56,31 @@ Check whether the CLI exists:
 re-prompt --version
 ```
 
-Minimum supported CLI version for this skill: `0.4.0`.
+Minimum supported CLI version for this skill: `0.5.0`.
 
 If the command is missing, say that the CLI is not installed and ask before running any install command. The current release tarball is:
 
 ```bash
-npm install -g https://github.com/kio-vibe/re-prompt/releases/download/v0.4.2/re-prompt-0.4.2.tgz
+npm install -g https://github.com/kio-vibe/re-prompt/releases/download/v0.5.0/re-prompt-0.5.0.tgz
 ```
 
-If `re-prompt --version` is older than `0.4.0`, do not run `re-prompt candidates`, `scan`, `go`, `coach`, `retro`, direct JSONL reads, or any fallback script. Tell the user briefly that the CLI is outdated and ask whether they want to update:
+If `re-prompt --version` is older than `0.5.0`, do not run `re-prompt habits`, `candidates`, `scan`, `go`, `coach`, `retro`, direct JSONL reads, or any fallback script. Tell the user briefly that the CLI is outdated and ask whether they want to update:
 
 ```text
-re-prompt CLI가 오래됐습니다. 현재 버전은 <version>이고, /re-prompt에는 0.4.0 이상이 필요합니다. 아래 명령으로 0.4.2로 업데이트해도 될까요?
+re-prompt CLI가 오래됐습니다. 현재 버전은 <version>이고, /re-prompt에는 0.5.0 이상이 필요합니다. 아래 명령으로 0.5.0으로 업데이트해도 될까요?
 ```
 
 ```bash
-npm install -g https://github.com/kio-vibe/re-prompt/releases/download/v0.4.2/re-prompt-0.4.2.tgz
+npm install -g https://github.com/kio-vibe/re-prompt/releases/download/v0.5.0/re-prompt-0.5.0.tgz
 ```
 
 Do not install automatically from a natural-language request.
 
 ## Safe Failure Behavior
 
-Candidate lists must come from `re-prompt candidates` only.
+Habit summaries must come from `re-prompt habits` only.
 
-If `re-prompt candidates` exits non-zero, do not fallback to `scan`, `go`, or manual transcript reading. Do not infer candidates from transcript paths. Stop and summarize the setup problem. Suggest checking:
+If `re-prompt habits` exits non-zero, do not fallback to `candidates`, `scan`, `go`, or manual transcript reading. Do not infer habits or evidence sessions from transcript paths. Stop and summarize the setup problem. Suggest checking:
 
 ```bash
 re-prompt --version
@@ -94,29 +94,32 @@ Never open stored rollout files directly as a recovery path.
 When the user starts with `/re-prompt` or asks to use re-prompt without a specific session:
 
 ```bash
-re-prompt candidates --format json --top 3 --language ko
-re-prompt candidates --format json --top 3 --language en
+re-prompt habits --format json --language ko --engine codex
+re-prompt habits --format json --language en --engine codex
 ```
 
 Use exactly one of those commands, based on the fixed response language chosen from the conversation. Do not use `--language auto` in the plugin flow.
 
 Summarize the result as:
 
-- "먼저 볼 후보 3개" / "Three sessions worth reviewing first"
-- for each candidate: what the chat was about, why it is worth reviewing, and one short likely issue
-- ask the user to choose only a number, such as `1번`, `2번`, or `1`
+- "최근 세션에서 보이는 프롬프트 습관" / "Prompt habits from recent sessions"
+- "좋은 점" / "Strengths"
+- "아쉬운 점" / "Risks"
+- "다음엔 이렇게 시작하면 좋아요" / "Say this next time"
+- "근거가 된 세션" / "Evidence sessions"
+- ask the user to choose only a session number for deeper coaching, such as `1번`, `2번`, or `1`
 
 Do not show internal fields such as scores, `Friction`, `file_churn`, `heuristic-only`, `Main cause`, or raw transcript paths.
 
 ## Number Selection
 
-If the user replies with a number and the previous assistant message contains a candidate list, map that number to the matching `sessionId`.
+If the user replies with a number and the previous assistant message contains a habit report with evidence sessions, map that number to the matching `sessionId`.
 
-If there is no usable candidate list in the conversation context, rerun:
+If there is no usable habit report in the conversation context, rerun:
 
 ```bash
-re-prompt candidates --format json --top 3 --language ko
-re-prompt candidates --format json --top 3 --language en
+re-prompt habits --format json --language ko --engine codex
+re-prompt habits --format json --language en --engine codex
 ```
 
 Use the same fixed response language as above.
@@ -125,14 +128,14 @@ Then ask the user to choose again.
 
 ## Coach The Selected Session
 
-When a candidate is selected, run:
+When an evidence session is selected, run:
 
 ```bash
 re-prompt coach <session-id> --engine codex --language ko
 re-prompt coach <session-id> --engine codex --language en
 ```
 
-Use exactly one of those commands, matching the response language used for the candidate list.
+Use exactly one of those commands, matching the response language used for the habit summary.
 
 Use `--engine claude` only when the user explicitly asks for Claude. If the Codex or Claude analyzer falls back, explain briefly that re-prompt used a safer local fallback.
 
@@ -149,10 +152,10 @@ Put `shortRewriteInYourVoice` first when it exists. Keep the user's sentence sha
 
 ## Continue The Loop
 
-After coaching one candidate, suggest another candidate from the previous list:
+After coaching one evidence session, suggest another evidence session from the previous habit report:
 
-- Korean: `다른 후보도 볼까요? 2번이나 3번을 말하면 이어서 볼게요.`
-- English: `Want to check another candidate? Reply with 2 or 3.`
+- Korean: `다른 근거 세션도 볼까요? 2번이나 3번을 말하면 이어서 볼게요.`
+- English: `Want to check another evidence session? Reply with 2 or 3.`
 
 If the user asks for rules or detailed forensic output, explain that those are advanced CLI flows:
 

@@ -68,19 +68,8 @@ export const promptHabitReportJsonSchema = {
     "limitations"
   ],
   properties: {
-    schemaVersion: { const: 1 },
-    analysis: {
-      type: "object",
-      additionalProperties: false,
-      required: ["requestedEngine", "usedEngine", "fallback"],
-      properties: {
-        requestedEngine: { enum: ["none", "codex", "claude"] },
-        usedEngine: { enum: ["none", "codex", "claude"] },
-        fallback: { type: "boolean" },
-        fallbackReason: { type: "string" }
-      }
-    },
-    language: { enum: ["en", "ko"] },
+    schemaVersion: { type: "integer", enum: [1] },
+    language: { type: "string", enum: ["en", "ko"] },
     oneLineTake: { type: "string" },
     strengths: {
       type: "array",
@@ -123,12 +112,11 @@ export const promptHabitReportJsonSchema = {
           index: { type: "integer", minimum: 1 },
           sessionId: { type: "string" },
           title: { type: "string" },
-          whyRelevant: { type: "string" },
-          startedAt: { type: "string" }
+          whyRelevant: { type: "string" }
         }
       }
     },
-    confidence: { enum: ["low", "medium", "high"] },
+    confidence: { type: "string", enum: ["low", "medium", "high"] },
     limitations: { type: "array", items: { type: "string" } }
   }
 } as const;

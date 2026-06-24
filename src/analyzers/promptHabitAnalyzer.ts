@@ -70,6 +70,8 @@ export class CodexPromptHabitAnalyzer extends PromptHabitCliAnalyzer {
           command: binary,
           args: [
             "exec",
+            "--disable",
+            "plugins",
             "--ephemeral",
             "--ignore-user-config",
             "--ignore-rules",

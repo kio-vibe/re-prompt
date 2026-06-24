@@ -140,7 +140,7 @@ describe("CLI commands", () => {
     expect(result.stdout).toContain("# 최근 세션에서 보이는 프롬프트 습관");
     expect(result.stdout).toContain("분석: codex");
     const args = JSON.parse(await readFile(argsFile, "utf8")) as string[];
-    expect(args).toEqual(expect.arrayContaining(["exec", "--ephemeral", "--ignore-user-config", "--ignore-rules", "--output-schema"]));
+    expect(args).toEqual(expect.arrayContaining(["exec", "--disable", "plugins", "--ephemeral", "--ignore-user-config", "--ignore-rules", "--output-schema"]));
     const stdin = await readFile(stdinFile, "utf8");
     expect(stdin).toContain("RE_PROMPT_INTERNAL_ANALYSIS");
     expect(stdin).toContain("Redacted PromptHabitBundle JSON");
@@ -352,7 +352,7 @@ describe("CLI commands", () => {
     expect(result.stdout).toContain("다음엔 이렇게 말하면 돼요");
     expect(result.stdout).toContain("조금 더 탄탄하게 쓰면");
     const args = JSON.parse(await readFile(argsFile, "utf8")) as string[];
-    expect(args).toEqual(expect.arrayContaining(["exec", "--ephemeral", "--ignore-user-config", "--ignore-rules", "--output-schema"]));
+    expect(args).toEqual(expect.arrayContaining(["exec", "--disable", "plugins", "--ephemeral", "--ignore-user-config", "--ignore-rules", "--output-schema"]));
     const stdin = await readFile(stdinFile, "utf8");
     expect(stdin).toContain("RE_PROMPT_INTERNAL_ANALYSIS");
     expect(stdin).toContain("Redacted PromptCoachBundle JSON");
@@ -440,6 +440,8 @@ describe("CLI commands", () => {
     expect(args).toEqual(
       expect.arrayContaining([
         "exec",
+        "--disable",
+        "plugins",
         "--ephemeral",
         "--ignore-user-config",
         "--ignore-rules",

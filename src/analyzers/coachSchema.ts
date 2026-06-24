@@ -61,10 +61,10 @@ export const promptCoachReportJsonSchema = {
         source: { type: "string", enum: ["codex"] },
         sessionId: { type: "string" },
         title: { type: "string" },
-        confidence: { enum: ["low", "medium", "high"] }
+        confidence: { type: "string", enum: ["low", "medium", "high"] }
       }
     },
-    language: { enum: ["en", "ko"] },
+    language: { type: "string", enum: ["en", "ko"] },
     oneLineTake: { type: "string" },
     whatYouActuallyWrote: { type: "string" },
     whereItWentWrong: { type: "string" },
@@ -72,7 +72,7 @@ export const promptCoachReportJsonSchema = {
     rewriteInYourVoice: { type: "string" },
     whyThisWorks: { type: "string" },
     rescueLine: { type: "string" },
-    confidence: { enum: ["low", "medium", "high"] },
+    confidence: { type: "string", enum: ["low", "medium", "high"] },
     limitations: { type: "array", items: { type: "string" } }
   }
 } as const;

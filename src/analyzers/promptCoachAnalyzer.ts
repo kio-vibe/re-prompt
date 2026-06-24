@@ -70,6 +70,8 @@ export class CodexPromptCoachAnalyzer extends PromptCoachCliAnalyzer {
           command: binary,
           args: [
             "exec",
+            "--disable",
+            "plugins",
             "--ephemeral",
             "--ignore-user-config",
             "--ignore-rules",

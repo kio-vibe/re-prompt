@@ -63,7 +63,7 @@ If an issue requires sensitive detail to reproduce, describe the shape of the da
 
 ## What re-prompt does locally
 
-`re-prompt` is local-first by default in `v0.4.2`.
+`re-prompt` is local-first by default in `v0.5.0`.
 
 - The Codex plugin runs local `re-prompt` commands under the hood.
 - The plugin does not upload transcripts.
@@ -71,6 +71,7 @@ If an issue requires sensitive detail to reproduce, describe the shape of the da
 - The plugin should not read `~/.codex/sessions/**/*.jsonl` directly. It should use `re-prompt` CLI output instead.
 - Plugin coach flows use Codex by default and send only a redacted prompt-coach bundle, not raw transcripts.
 - `candidates`, `scan`, `go`, and `rules` remain deterministic local heuristic commands.
+- `habits` and `coach` may use Codex or Claude only when explicitly configured by the command or plugin flow, and they receive redacted bundles rather than raw transcripts.
 - It redacts common secrets and local home paths before generating reports.
 - AGENTS.md suggestions are dry-run previews.
 

@@ -67,6 +67,8 @@ export class CodexCliAnalyzer extends CliAnalyzer {
           command: binary,
           args: [
             "exec",
+            "--disable",
+            "plugins",
             "--ephemeral",
             "--ignore-user-config",
             "--ignore-rules",

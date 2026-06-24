@@ -45,6 +45,7 @@ const suggestedFixSchema = z.union([
 ]);
 
 const evidenceKindJsonSchema = {
+  type: "string",
   enum: ["user_message", "assistant_message", "command", "file_change", "plan_update", "usage", "parser_note"]
 } as const;
 
@@ -222,8 +223,8 @@ export const retroReportJsonSchema = {
         sessionId: { type: "string" },
         title: { type: "string" },
         inferredGoal: { type: "string" },
-        outcome: { enum: ["successful", "partially_successful", "failed", "unclear"] },
-        confidence: { enum: ["low", "medium", "high"] }
+        outcome: { type: "string", enum: ["successful", "partially_successful", "failed", "unclear"] },
+        confidence: { type: "string", enum: ["low", "medium", "high"] }
       }
     },
     executiveSummary: { type: "string" },
@@ -233,8 +234,9 @@ export const retroReportJsonSchema = {
       required: ["score", "label", "mainCause"],
       properties: {
         score: { type: "integer", minimum: 0, maximum: 100 },
-        label: { enum: ["low", "medium", "high", "severe"] },
+        label: { type: "string", enum: ["low", "medium", "high", "severe"] },
         mainCause: {
+          type: "string",
           enum: [
             "missing_context",
             "late_constraint",
@@ -272,8 +274,8 @@ export const retroReportJsonSchema = {
         properties: {
           id: { type: "string" },
           title: { type: "string" },
-          severity: { enum: ["low", "medium", "high"] },
-          confidence: { enum: ["low", "medium", "high"] },
+          severity: { type: "string", enum: ["low", "medium", "high"] },
+          confidence: { type: "string", enum: ["low", "medium", "high"] },
           diagnosis: { type: "string" },
           evidence: { type: "array", items: evidenceRefJsonSchema },
           betterBehavior: { type: "string" },
@@ -288,7 +290,7 @@ export const retroReportJsonSchema = {
       properties: {
         prompt: { type: "string" },
         whyThisWouldHelp: { type: "string" },
-        confidence: { enum: ["low", "medium", "high"] }
+        confidence: { type: "string", enum: ["low", "medium", "high"] }
       }
     },
     rescuePrompts: {
@@ -302,7 +304,7 @@ export const retroReportJsonSchema = {
           prompt: { type: "string" },
           useWhen: { type: "string" },
           expectedEffect: { type: "string" },
-          confidence: { enum: ["low", "medium", "high"] }
+          confidence: { type: "string", enum: ["low", "medium", "high"] }
         }
       }
     },
@@ -312,7 +314,7 @@ export const retroReportJsonSchema = {
       required: ["shouldPatch", "target", "rationale", "patchMarkdown", "rules"],
       properties: {
         shouldPatch: { type: "boolean" },
-        target: { enum: ["global", "repo", "subdir", "none"] },
+        target: { type: "string", enum: ["global", "repo", "subdir", "none"] },
         rationale: { type: "string" },
         patchMarkdown: { type: "string" },
         rules: { type: "array", items: { type: "string" } }

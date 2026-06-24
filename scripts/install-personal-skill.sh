@@ -28,7 +28,7 @@ CODEX_HOME="${CODEX_HOME:-$HOME/.codex}"
 SOURCE="$ROOT/plugins/re-prompt/skills/re-prompt/SKILL.md"
 TARGET_DIR="$CODEX_HOME/skills/re-prompt"
 TARGET="$TARGET_DIR/SKILL.md"
-CLI_INSTALL_COMMAND="npm install -g https://github.com/kio-vibe/re-prompt/releases/download/v0.4.2/re-prompt-0.4.2.tgz"
+CLI_INSTALL_COMMAND="npm install -g https://github.com/kio-vibe/re-prompt/releases/download/v0.5.0/re-prompt-0.5.0.tgz"
 LEGACY_SKILLS=(
   "re-prompt-go"
   "re-prompt-install"

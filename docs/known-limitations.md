@@ -1,14 +1,14 @@
 # Known Limitations
 
-`re-prompt v0.4.2` is an early dogfood release. It is useful for testing prompt coaching quality, but it is intentionally narrow.
+`re-prompt v0.5.0` is an early dogfood release. It is useful for testing prompt coaching quality, but it is intentionally narrow.
 
 ## Current scope
 
 - Codex stored rollout logs only
 - local-first
-- Codex coach by default in plugin flows
+- Codex habit/coach analysis by default in plugin flows
 - single `/re-prompt` Codex plugin wrapper for first-run UX
-- optional Claude CLI analyzer for `coach`
+- optional Claude CLI analyzer for `habits` and `coach`
 - no telemetry
 - no npm package yet
 - explicit CLI install only; the plugin does not auto-install global packages
@@ -27,7 +27,7 @@
 
 ## Accuracy limits
 
-Coach outputs are evidence-grounded suggestions, not guaranteed counterfactuals.
+Habit and coach outputs are evidence-grounded suggestions, not guaranteed counterfactuals.
 
 `re-prompt` can be wrong when:
 
